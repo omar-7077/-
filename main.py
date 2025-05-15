@@ -1,54 +1,64 @@
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# Put your bot token here
 TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"
 
-# Define buttons - one per line
-keyboard = [
-    ["موعد المكافأة"],
-    ["أرقام التواصل"],
-    ["الأسئلة الشائعة"],
-    ["منظومة الجامعة"],
-    ["البلاك بورد"]
-]
-reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+# === الأسئلة الشائعة ===
+faq_data = {
+    "ما هي طريقة احتساب المعدل؟": "يتم احتساب المعدل بجمع النقاط وقسمتها على عدد الساعات.",
+    "كيف أقدم اعتذار عن الترم؟": "من خلال بوابة الطالب - الخدمات الأكاديمية.",
+    "هل يوجد فصل صيفي؟": "نعم، حسب إعلان الجامعة.",
+}
 
-# /start command
+# === الوظائف ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "مرحبًا بك في البوت الجامعي!\nاختر من الأزرار التالية:",
-        reply_markup=reply_markup
-    )
+    keyboard = [
+        [InlineKeyboardButton("موعد المكافأة", callback_data="mokafa")],
+        [InlineKeyboardButton("أرقام التواصل", callback_data="contact")],
+        [InlineKeyboardButton("الأسئلة الشائعة", callback_data="faq")],
+        [InlineKeyboardButton("تقييم الدكاترة", url="https://t.me/tudoctors")],
+        [InlineKeyboardButton("منظومة الجامعة", url="https://edugate.tu.edu.sa/")],
+        [InlineKeyboardButton("رابط البلاك بورد", url="https://lms.tu.edu.sa/")],
+        [InlineKeyboardButton("موقع الجامعة للطلاب", url="https://maps.app.goo.gl/SJ2vYZt9wiqQYkx89")],
+        [InlineKeyboardButton("موقع الجامعة للطالبات", url="https://maps.app.goo.gl/BPwmcoQ7T16CT2FX8")],
+        [InlineKeyboardButton("حفل التخرج", callback_data="graduation")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("مرحباً بك، اختر أحد الخيارات:", reply_markup=reply_markup)
 
-# Button handler
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    data = query.data
+    await query.answer()
 
-    if text == "موعد المكافأة":
-        await update.message.reply_text("موعد صرف المكافأة: 26/05/2025\nالمتبقي: 10 أيام")
-    
-    elif text == "أرقام التواصل":
-        await update.message.reply_text("للتواصل مع الجامعة:\nالهاتف: 920000000\nالبريد الإلكتروني: info@tu.edu.sa")
-    
-    elif text == "الأسئلة الشائعة":
-        await update.message.reply_text("الأسئلة الشائعة:\n1. كيف أسجل المواد؟\n2. كيف أستعيد كلمة المرور؟\n3. كيف أستخدم البلاك بورد؟")
-    
-    elif text == "منظومة الجامعة":
-        await update.message.reply_text("رابط منظومة الجامعة: https://edugate.tu.edu.sa")
+    if data == "mokafa":
+        await query.edit_message_text("موعد صرف المكافأة: 26/05/2025\nالمتبقي: 10 أيام", reply_markup=back_button())
+    elif data == "contact":
+        await query.edit_message_text("للتواصل مع الجامعة:\nالهاتف: 920002122", reply_markup=back_button())
+    elif data == "graduation":
+        photo_url = "https://raw.githubusercontent.com/omar-7077/unibot/main/graduation.jpg"
+        await context.bot.send_photo(chat_id=update.effective_chat.id, photo=photo_url)
+    elif data == "faq":
+        keyboard = [[InlineKeyboardButton(q, callback_data=f"faq_{i}")] for i, q in enumerate(faq_data)]
+        keyboard.append([InlineKeyboardButton("رجوع", callback_data="back")])
+        await query.edit_message_text("اختر سؤالًا:", reply_markup=InlineKeyboardMarkup(keyboard))
+    elif data.startswith("faq_"):
+        index = int(data.split("_")[1])
+        question = list(faq_data.keys())[index]
+        answer = faq_data[question]
+        await query.edit_message_text(f"{question}\n\n{answer}", reply_markup=back_button())
+    elif data == "back":
+        await start(update, context)
 
-    elif text == "البلاك بورد":
-        await update.message.reply_text("رابط البلاك بورد: https://lms.tu.edu.sa")
+def back_button():
+    return InlineKeyboardMarkup([[InlineKeyboardButton("رجوع", callback_data="back")]])
 
-    else:
-        await update.message.reply_text("الرجاء اختيار خيار من الأزرار فقط.")
-
-# Launch bot
-if __name__ == "__main__":
-    app = ApplicationBuilder().token(TOKEN).build()
-
+# === التشغيل ===
+def main():
+    app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    print("The bot is running...")
+    app.add_handler(CallbackQueryHandler(handle_callback))
     app.run_polling()
+
+if __name__ == "__main__":
+    main()
