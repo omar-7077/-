@@ -67,7 +67,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("ضعت؟ ما لقيت احد يرد عليك؟ ولا يهمك\nانا هنا عشانك", reply_markup=reply_markup)
         shown_welcome.add(uid)
     else:
-        await update.message.reply_text("اختر من القائمة:", reply_markup=reply_markup)
+        await update.message.reply_text("", reply_markup=reply_markup)
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message.text
@@ -82,7 +82,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("الهاتف: 920002122\nالإيميل: info@tu.edu.sa")
 
     elif msg == "قروبات فروع الجامعة":
-        await update.message.reply_text("اختر الفرع:", reply_markup=ReplyKeyboardMarkup([
+        await update.message.reply_text("", reply_markup=ReplyKeyboardMarkup([
             ["فرع تربة", "فرع الخرمة", "فرع رنية"], ["رجوع"]
         ], resize_keyboard=True))
     elif msg == "فرع تربة":
@@ -93,7 +93,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("https://t.me/+LhI_BEwURHNlNGZk")
 
     elif msg == "قروبات الكليات":
-        await update.message.reply_text("اختر الكلية:", reply_markup=ReplyKeyboardMarkup([
+        await update.message.reply_text("", reply_markup=ReplyKeyboardMarkup([
             ["كلية التربية", "الكلية التطبيقية"],
             ["دبلوم المناولة الأرضية", "كلية العلوم"],
             ["كلية الهندسة", "كلية الحاسبات"],
@@ -160,7 +160,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]:
             await update.message.reply_photo(img)
     elif msg == "الأسئلة الشائعة":
-        await update.message.reply_text("اختر سؤال:", reply_markup=ReplyKeyboardMarkup([
+        await update.message.reply_text("", reply_markup=ReplyKeyboardMarkup([
             ["كيف أسجل المواد؟"], ["رجوع"]
         ], resize_keyboard=True))
     elif msg == "كيف أسجل المواد؟":
@@ -171,8 +171,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     elif msg == "التقويم الأكاديمي":
         await update.message.reply_text("التقويم الأكاديمي:", reply_markup=calendar_keyboard())
-    else:
-        await update.message.reply_text("اختر من القائمة:", reply_markup=reply_markup)
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
