@@ -1,64 +1,90 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+import datetime
 
-TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"
+TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"  # استبدل هذا بالتوكن الخاص بك
 
-# === الأسئلة الشائعة ===
-faq_data = {
-    "ما هي طريقة احتساب المعدل؟": "يتم احتساب المعدل بجمع النقاط وقسمتها على عدد الساعات.",
-    "كيف أقدم اعتذار عن الترم؟": "من خلال بوابة الطالب - الخدمات الأكاديمية.",
-    "هل يوجد فصل صيفي؟": "نعم، حسب إعلان الجامعة.",
-}
+# القوائم الرئيسية والفرعية
+main_menu = [["موعد المكافأة", "أرقام التواصل"],
+             ["الأسئلة الشائعة", "تقييم الدكاترة"],
+             ["منظومة الجامعة", "البلاك بورد"],
+             ["موقع الطلاب", "موقع الطالبات"],
+             ["حفل التخرج"]]
 
-# === الوظائف ===
+faq_menu = [["كيف أسجل المواد؟"],
+            ["كيف أستعيد كلمة المرور؟"],
+            ["كيف أستخدم البلاك بورد؟"],
+            ["رجوع"]]
+
+reply_main = ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
+reply_faq = ReplyKeyboardMarkup(faq_menu, resize_keyboard=True)
+
+# دالة البدء
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("موعد المكافأة", callback_data="mokafa")],
-        [InlineKeyboardButton("أرقام التواصل", callback_data="contact")],
-        [InlineKeyboardButton("الأسئلة الشائعة", callback_data="faq")],
-        [InlineKeyboardButton("تقييم الدكاترة", url="https://t.me/tudoctors")],
-        [InlineKeyboardButton("منظومة الجامعة", url="https://edugate.tu.edu.sa/")],
-        [InlineKeyboardButton("رابط البلاك بورد", url="https://lms.tu.edu.sa/")],
-        [InlineKeyboardButton("موقع الجامعة للطلاب", url="https://maps.app.goo.gl/SJ2vYZt9wiqQYkx89")],
-        [InlineKeyboardButton("موقع الجامعة للطالبات", url="https://maps.app.goo.gl/BPwmcoQ7T16CT2FX8")],
-        [InlineKeyboardButton("حفل التخرج", callback_data="graduation")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("مرحباً بك، اختر أحد الخيارات:", reply_markup=reply_markup)
+    await update.message.reply_text("مرحباً بك في البوت الجامعي!\nاختر من الأزرار:", reply_markup=reply_main)
 
-async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    data = query.data
-    await query.answer()
+# دالة التعامل مع الرسائل
+async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = update.message.text
 
-    if data == "mokafa":
-        await query.edit_message_text("موعد صرف المكافأة: 26/05/2025\nالمتبقي: 10 أيام", reply_markup=back_button())
-    elif data == "contact":
-        await query.edit_message_text("للتواصل مع الجامعة:\nالهاتف: 920002122", reply_markup=back_button())
-    elif data == "graduation":
-        photo_url = "https://raw.githubusercontent.com/omar-7077/unibot/main/graduation.jpg"
-        await context.bot.send_photo(chat_id=update.effective_chat.id, photo=photo_url)
-    elif data == "faq":
-        keyboard = [[InlineKeyboardButton(q, callback_data=f"faq_{i}")] for i, q in enumerate(faq_data)]
-        keyboard.append([InlineKeyboardButton("رجوع", callback_data="back")])
-        await query.edit_message_text("اختر سؤالًا:", reply_markup=InlineKeyboardMarkup(keyboard))
-    elif data.startswith("faq_"):
-        index = int(data.split("_")[1])
-        question = list(faq_data.keys())[index]
-        answer = faq_data[question]
-        await query.edit_message_text(f"{question}\n\n{answer}", reply_markup=back_button())
-    elif data == "back":
-        await start(update, context)
+    if msg == "موعد المكافأة":
+        today = datetime.datetime.today()
+        bonus_day = datetime.datetime(today.year, today.month, 26)
+        if today.day > 26:
+            if today.month == 12:
+                bonus_day = datetime.datetime(today.year + 1, 1, 26)
+            else:
+                bonus_day = datetime.datetime(today.year, today.month + 1, 26)
+        remaining_days = (bonus_day - today).days
+        formatted_date = bonus_day.strftime('%d/%m/%Y')
+        await update.message.reply_text(f"موعد صرف المكافأة: {formatted_date}\nالمتبقي: {remaining_days} يوم")
 
-def back_button():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("رجوع", callback_data="back")]])
+    elif msg == "أرقام التواصل":
+        await update.message.reply_text("رقم الجامعة: 920002122")
+    
+    elif msg == "تقييم الدكاترة":
+        await update.message.reply_text("رابط تقييم الدكاترة:\nhttps://t.me/tudoctors")
+    
+    elif msg == "منظومة الجامعة":
+        await update.message.reply_text("رابط منظومة الجامعة:\nhttps://edugate.tu.edu.sa")
+    
+    elif msg == "البلاك بورد":
+        await update.message.reply_text("رابط البلاك بورد:\nhttps://lms.tu.edu.sa")
+    
+    elif msg == "موقع الطلاب":
+        await update.message.reply_text("موقع الجامعة للطلاب:\nhttps://maps.app.goo.gl/SJ2vYZt9wiqQYkx89")
+    
+    elif msg == "موقع الطالبات":
+        await update.message.reply_text("موقع الجامعة للطالبات:\nhttps://maps.app.goo.gl/BPwmcoQ7T16CT2FX8")
+    
+    elif msg == "حفل التخرج":
+        await context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo="https://www2.0zz0.com/2025/05/15/07/864959598.jpeg",
+            caption="صورة حفل التخرج"
+        )
+    
+    elif msg == "الأسئلة الشائعة":
+        await update.message.reply_text("اختر سؤالاً:", reply_markup=reply_faq)
+    
+    elif msg == "كيف أسجل المواد؟":
+        await update.message.reply_text("من خلال بوابة الطالب ثم تسجيل المقررات.", reply_markup=reply_faq)
+    
+    elif msg == "كيف أستعيد كلمة المرور؟":
+        await update.message.reply_text("عبر خيار (نسيت كلمة المرور) في بوابة الدخول.", reply_markup=reply_faq)
+    
+    elif msg == "كيف أستخدم البلاك بورد؟":
+        await update.message.reply_text("سجّل دخولك عبر https://lms.tu.edu.sa ثم اختر المقررات.", reply_markup=reply_faq)
+    
+    elif msg == "رجوع":
+        await update.message.reply_text("عدنا للقائمة الرئيسية:", reply_markup=reply_main)
+    
+    else:
+        await update.message.reply_text("يرجى اختيار زر من القائمة.", reply_markup=reply_main)
 
-# === التشغيل ===
-def main():
-    app = Application.builder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(handle_callback))
-    app.run_polling()
-
+# تشغيل البوت
 if __name__ == "__main__":
-    main()
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+    app.run_polling()
