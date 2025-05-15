@@ -66,8 +66,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if uid not in shown_welcome:
         await update.message.reply_text("ضعت؟ ما لقيت احد يرد عليك؟ ولا يهمك\nانا هنا عشانك", reply_markup=reply_markup)
         shown_welcome.add(uid)
+    else:
+        await update.message.reply_text("اختر من القائمة:", reply_markup=reply_markup)
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if uid not in shown_welcome:
+        shown_welcome.add(uid)
+        await update.message.reply_text("ضعت؟ ما لقيت احد يرد عليك؟ ولا يهمك\nانا هنا عشانك", reply_markup=reply_markup)
+        return
+
     msg = update.message.text
 
     if msg == "موعد المكافأة":
@@ -75,34 +83,24 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bonus = datetime(today.year + (today.month == 12 and today.day > 26), (today.month % 12) + 1 if today.day > 26 else today.month, 26)
         left = (bonus - today).days
         await update.message.reply_text(f"موعد المكافأة: {bonus.date()}\nالمتبقي: {left} يوم")
-
     elif msg == "أرقام التواصل":
         await update.message.reply_text("الهاتف: 920002122\nالإيميل: info@tu.edu.sa")
-
     elif msg == "تقييم الدكاترة":
         await update.message.reply_text("https://t.me/tudoctors")
-
     elif msg == "منظومة الجامعة":
         await update.message.reply_text("https://edugate.tu.edu.sa")
-
     elif msg == "البلاك بورد":
         await update.message.reply_text("https://lms.tu.edu.sa")
-
     elif msg == "موقع جامعة الطلاب":
         await update.message.reply_text("https://maps.app.goo.gl/SJ2vYZt9wiqQYkx89")
-
     elif msg == "موقع جامعة الطالبات":
         await update.message.reply_text("https://maps.app.goo.gl/BPwmcoQ7T16CT2FX8")
-
     elif msg == "قروب بيع الكتب":
         await update.message.reply_text("https://t.me/bookTaifUniversity")
-
     elif msg == "قروب الفصل الصيفي":
         await update.message.reply_text("https://t.me/summerTaifUniversity")
-
     elif msg == "حفل التخرج":
         await update.message.reply_photo("https://www2.0zz0.com/2025/05/15/07/864959598.jpeg")
-
     elif msg == "دليل التخصصات":
         for img in [
             "https://www2.0zz0.com/2025/05/15/09/898187191.jpeg",
@@ -112,73 +110,48 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "https://www2.0zz0.com/2025/05/15/09/409568913.jpeg"
         ]:
             await update.message.reply_photo(img)
-
-    elif msg == "قروبات فروع الجامعة":
-        await update.message.reply_text("اختر الفرع:", reply_markup=ReplyKeyboardMarkup([
-            ["فرع تربة", "فرع الخرمة", "فرع رنية"], ["رجوع"]
-        ], resize_keyboard=True))
-
-    elif msg == "فرع تربة":
-        await update.message.reply_text("https://t.me/+LTvqFqmbNhU3Nzg0")
-
-    elif msg == "فرع الخرمة":
-        await update.message.reply_text("https://t.me/+TI4sw9271iJhNDU0")
-
-    elif msg == "فرع رنية":
-        await update.message.reply_text("https://t.me/+LhI_BEwURHNlNGZk")
-
-    elif msg == "قروبات الكليات":
-        await update.message.reply_text("اختر الكلية:", reply_markup=ReplyKeyboardMarkup([
-            ["كلية التربية", "الكلية التطبيقية"],
-            ["دبلوم المناولة الأرضية", "كلية العلوم"],
-            ["كلية الهندسة", "كلية الحاسبات"],
-            ["كلية التصاميم", "كلية الشريعة"],
-            ["كلية إدارة الأعمال", "كلية التقنية"],
-            ["كلية الطب", "كلية طب الأسنان"],
-            ["التمريض", "كلية الصيدلة"],
-            ["العلاج الطبيعي", "علوم الأشعة"],
-            ["المختبرات الإكلينيكية"], ["رجوع"]
-        ], resize_keyboard=True))
-
-    college_links = {
-        "كلية التربية": "https://t.me/educationTaifUniversity",
-        "الكلية التطبيقية": "https://t.me/appliedstudiesTaifUniversity",
-        "دبلوم المناولة الأرضية": "https://t.me/aviationTaifUniversity",
-        "كلية العلوم": "https://t.me/TaifUnivierstiy1",
-        "كلية الهندسة": "https://t.me/engineeringTaifUniversity",
-        "كلية الحاسبات": "https://t.me/computersTaifUniversity",
-        "كلية التصاميم": "https://t.me/designsTaifUniversity",
-        "كلية الشريعة": "https://t.me/+TKCYp3jPayCyUgSw",
-        "كلية إدارة الأعمال": "https://t.me/+na12acQgxzxkZTZk",
-        "كلية التقنية": "https://t.me/tvtcVocationalTaifCorporation",
-        "كلية الطب": "https://t.me/medicine_Tu",
-        "كلية طب الأسنان": "https://t.me/Dentistry_TU",
-        "كلية الصيدلة": "https://t.me/Pharma_DTU33",
-        "التمريض": "https://t.me/nursstudent",
-        "العلاج الطبيعي": "https://t.me/Physical_therapyTU",
-        "علوم الأشعة": "https://t.me/RadiologySciences",
-        "المختبرات الإكلينيكية": "https://t.me/labrotary_Tu"
-    }
-
-    if msg in college_links:
-        await update.message.reply_text(college_links[msg])
-
     elif msg == "الأسئلة الشائعة":
         await update.message.reply_text("اختر سؤال:", reply_markup=ReplyKeyboardMarkup([
             ["كيف أسجل المواد؟"], ["رجوع"]
         ], resize_keyboard=True))
-
     elif msg == "كيف أسجل المواد؟":
-        await update.message.reply_text("المنظومة > التسجيل الإلكتروني\n\n- إذا لم تحذف مادة: تسجيل المجموعات الإلكترونية.\n- إذا حذفت أو حملت مادة: الحذف والإضافة يدويًا.")
-
-    elif msg == "التقويم الأكاديمي":
-        await update.message.reply_text("التقويم الأكاديمي:", reply_markup=calendar_keyboard())
-
+        await update.message.reply_text(
+            "المنظومة > التسجيل الإلكتروني\n\n"
+            "- إذا لم تحذف مادة: تسجيل المجموعات الإلكترونية.\n"
+            "- إذا حذفت أو حملت مادة: الحذف والإضافة يدويًا."
+        )
+    elif msg == "قروبات فروع الجامعة":
+        await update.message.reply_text("اختر الفرع:", reply_markup=ReplyKeyboardMarkup([
+            ["فرع تربة", "فرع الخرمة", "فرع رنية"], ["رجوع"]
+        ], resize_keyboard=True))
+    elif msg == "فرع تربة":
+        await update.message.reply_text("https://t.me/+LTvqFqmbNhU3Nzg0")
+    elif msg == "فرع الخرمة":
+        await update.message.reply_text("https://t.me/+TI4sw9271iJhNDU0")
+    elif msg == "فرع رنية":
+        await update.message.reply_text("https://t.me/+LhI_BEwURHNlNGZk")
+    elif msg == "قروبات الكليات":
+        await update.message.reply_text("اختر الكلية:", reply_markup=ReplyKeyboardMarkup([
+            ["كلية التربية", "كلية الهندسة"],
+            ["كلية الطب", "التمريض"],
+            ["رجوع"]
+        ], resize_keyboard=True))
+    elif msg == "كلية التربية":
+        await update.message.reply_text("https://t.me/educationTaifUniversity")
+    elif msg == "كلية الهندسة":
+        await update.message.reply_text("https://t.me/engineeringTaifUniversity")
+    elif msg == "كلية الطب":
+        await update.message.reply_text("https://t.me/medicine_Tu")
+    elif msg == "التمريض":
+        await update.message.reply_text("https://t.me/nursstudent")
     elif msg == "شرح الرموز":
         await update.message.reply_text("✅ = جاري\n❌ = منتهي\n⏳ = لم يبدأ بعد", reply_markup=ReplyKeyboardMarkup([["رجوع"]], resize_keyboard=True))
-
     elif msg == "رجوع":
-        await update.message.reply_text("رجعناك", reply_markup=reply_markup)
+        await update.message.reply_text("رجعناك للقائمة الرئيسية:", reply_markup=reply_markup)
+    elif msg == "التقويم الأكاديمي":
+        await update.message.reply_text("التقويم الأكاديمي:", reply_markup=calendar_keyboard())
+    else:
+        await update.message.reply_text("اختر من القائمة:", reply_markup=reply_markup)
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -186,7 +159,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
     if data == "legend":
-        await query.edit_message_text("✅ = جاري\n❌ = منتهي\n⏳ = لم يبدأ بعد", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("رجوع", callback_data="calendar_back")]]))
+        await query.edit_message_text("✅ = جاري\n❌ = منتهي\n⏳ = لم يبدأ بعد", reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("رجوع", callback_data="calendar_back")]
+        ]))
     elif data == "calendar_back":
         await query.edit_message_text("التقويم الأكاديمي:", reply_markup=calendar_keyboard())
     elif data.startswith("event_"):
@@ -205,6 +180,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.ALL, handle_text))
+app.add_handler(MessageHandler(filters.TEXT, handle_text))
 app.add_handler(CallbackQueryHandler(handle_callback))
 app.run_polling()
