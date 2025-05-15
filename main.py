@@ -16,7 +16,7 @@ main_menu = [
 ]
 
 reply_markup = ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
-shown_welcome = set()  # لتتبع من شاهد رسالة الترحيب
+shown_welcome = set()
 
 academic_events = [
     ("طلب إعادة القيد", "2025-01-05", "2025-01-18"),
@@ -85,7 +85,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("اختر الفرع:", reply_markup=ReplyKeyboardMarkup([
             ["فرع تربة", "فرع الخرمة", "فرع رنية"], ["رجوع"]
         ], resize_keyboard=True))
-
     elif msg == "فرع تربة":
         await update.message.reply_text("https://t.me/+LTvqFqmbNhU3Nzg0")
     elif msg == "فرع الخرمة":
@@ -93,13 +92,48 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif msg == "فرع رنية":
         await update.message.reply_text("https://t.me/+LhI_BEwURHNlNGZk")
 
+    elif msg == "قروبات الكليات":
+        await update.message.reply_text("اختر الكلية:", reply_markup=ReplyKeyboardMarkup([
+            ["كلية التربية", "الكلية التطبيقية"],
+            ["دبلوم المناولة الأرضية", "كلية العلوم"],
+            ["كلية الهندسة", "كلية الحاسبات"],
+            ["كلية التصاميم", "كلية الشريعة"],
+            ["كلية إدارة الأعمال", "كلية التقنية"],
+            ["كلية الطب", "كلية طب الأسنان"],
+            ["التمريض", "كلية الصيدلة"],
+            ["العلاج الطبيعي", "علوم الأشعة"],
+            ["المختبرات الإكلينيكية"], ["رجوع"]
+        ], resize_keyboard=True))
+
+    college_links = {
+        "كلية التربية": "https://t.me/educationTaifUniversity",
+        "الكلية التطبيقية": "https://t.me/appliedstudiesTaifUniversity",
+        "دبلوم المناولة الأرضية": "https://t.me/aviationTaifUniversity",
+        "كلية العلوم": "https://t.me/TaifUnivierstiy1",
+        "كلية الهندسة": "https://t.me/engineeringTaifUniversity",
+        "كلية الحاسبات": "https://t.me/computersTaifUniversity",
+        "كلية التصاميم": "https://t.me/designsTaifUniversity",
+        "كلية الشريعة": "https://t.me/+TKCYp3jPayCyUgSw",
+        "كلية إدارة الأعمال": "https://t.me/+na12acQgxzxkZTZk",
+        "كلية التقنية": "https://t.me/tvtcVocationalTaifCorporation",
+        "كلية الطب": "https://t.me/medicine_Tu",
+        "كلية طب الأسنان": "https://t.me/Dentistry_TU",
+        "كلية الصيدلة": "https://t.me/Pharma_DTU33",
+        "التمريض": "https://t.me/nursstudent",
+        "العلاج الطبيعي": "https://t.me/Physical_therapyTU",
+        "علوم الأشعة": "https://t.me/RadiologySciences",
+        "المختبرات الإكلينيكية": "https://t.me/labrotary_Tu"
+    }
+
+    if msg in college_links:
+        await update.message.reply_text(college_links[msg])
+
     elif msg == "شرح الرموز":
         await update.message.reply_text("✅ = جاري\n❌ = منتهي\n⏳ = لم يبدأ بعد", reply_markup=ReplyKeyboardMarkup([["رجوع"]], resize_keyboard=True))
 
     elif msg == "رجوع":
         await start(update, context)
 
-    # باقي الأوامر كما هي
     elif msg == "تقييم الدكاترة":
         await update.message.reply_text("https://t.me/tudoctors")
     elif msg == "منظومة الجامعة":
