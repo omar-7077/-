@@ -1,42 +1,45 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 
-# التوكن الخاص بك
-TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"
+TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"  # Replace with your real bot token
 
-# إنشاء الأزرار
-def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Start command with buttons
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("موعد المكافأة", callback_data="mokafa")],
-        [InlineKeyboardButton("أرقام التواصل", callback_data="contact")],
-        [InlineKeyboardButton("الأسئلة الشائعة", callback_data="faq")],
-        [InlineKeyboardButton("منظومة الجامعة", callback_data="edugate")],
-        [InlineKeyboardButton("رابط البلاك بورد", callback_data="blackboard")],
+        ["Bonus Date", "Contact"],
+        ["FAQ", "Edugate", "Blackboard"]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text("مرحباً بك في البوت الجامعي! اختر ما تريد:", reply_markup=reply_markup)
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    await update.message.reply_text(
+        "Welcome to the University Bot!\nPlease choose an option:",
+        reply_markup=reply_markup
+    )
 
-# الردود عند الضغط على الأزرار
-async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+# Handle button presses
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
 
-    if query.data == "mokafa":
-        await query.edit_message_text("موعد صرف المكافأة: 26/05/2025\nالمتبقي: 10 أيام")
-    elif query.data == "contact":
-        await query.edit_message_text("للتواصل مع الجامعة:\nالهاتف: 920000000\nالبريد: info@tu.edu.sa")
-    elif query.data == "faq":
-        await query.edit_message_text("الأسئلة الشائعة:\n- كيف أعدل جدولي؟\n- متى تبدأ الاختبارات؟")
-    elif query.data == "edugate":
-        await query.edit_message_text("رابط منظومة الجامعة:\nhttps://edugate.tu.edu.sa")
-    elif query.data == "blackboard":
-        await query.edit_message_text("رابط البلاك بورد:\nhttps://lms.tu.edu.sa")
+    if text == "Bonus Date":
+        await update.message.reply_text("The bonus will be issued on: 26/05/2025\nRemaining: 10 days")
+    elif text == "Contact":
+        await update.message.reply_text("University Contact:\nPhone: 920000000\nEmail: info@tu.edu.sa")
+    elif text == "FAQ":
+        await update.message.reply_text("FAQ:\n1. How to reset password?\n2. Where to see GPA?\n3. How to access Blackboard?")
+    elif text == "Edugate":
+        await update.message.reply_text("Edugate link:\nhttps://edugate.tu.edu.sa")
+    elif text == "Blackboard":
+        await update.message.reply_text("Blackboard link:\nhttps://lms.tu.edu.sa")
+    else:
+        await update.message.reply_text("Please choose one of the available options.")
 
-# تشغيل البوت
+# Main function
 def main():
-    app = Application.builder().token(TOKEN).build()
+    app = ApplicationBuilder().token(TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(handle_button))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    print("Bot is running...")
     app.run_polling()
 
 if __name__ == "__main__":
