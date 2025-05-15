@@ -2,7 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKe
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from datetime import datetime
 
-TOKEN = "607896227:AAGY0jukJh6MTo-Rm4718trZkd-xuS-YIo0"
+TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"
 
 main_menu = [
     ["موعد المكافأة", "أرقام التواصل"],
