@@ -1,46 +1,54 @@
 from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"  # Replace with your real bot token
+# Put your bot token here
+TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"
 
-# Start command with buttons
+# Define buttons - one per line
+keyboard = [
+    ["موعد المكافأة"],
+    ["أرقام التواصل"],
+    ["الأسئلة الشائعة"],
+    ["منظومة الجامعة"],
+    ["البلاك بورد"]
+]
+reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        ["Bonus Date", "Contact"],
-        ["FAQ", "Edugate", "Blackboard"]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await update.message.reply_text(
-        "Welcome to the University Bot!\nPlease choose an option:",
+        "مرحبًا بك في البوت الجامعي!\nاختر من الأزرار التالية:",
         reply_markup=reply_markup
     )
 
-# Handle button presses
+# Button handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
-    if text == "Bonus Date":
-        await update.message.reply_text("The bonus will be issued on: 26/05/2025\nRemaining: 10 days")
-    elif text == "Contact":
-        await update.message.reply_text("University Contact:\nPhone: 920000000\nEmail: info@tu.edu.sa")
-    elif text == "FAQ":
-        await update.message.reply_text("FAQ:\n1. How to reset password?\n2. Where to see GPA?\n3. How to access Blackboard?")
-    elif text == "Edugate":
-        await update.message.reply_text("Edugate link:\nhttps://edugate.tu.edu.sa")
-    elif text == "Blackboard":
-        await update.message.reply_text("Blackboard link:\nhttps://lms.tu.edu.sa")
-    else:
-        await update.message.reply_text("Please choose one of the available options.")
+    if text == "موعد المكافأة":
+        await update.message.reply_text("موعد صرف المكافأة: 26/05/2025\nالمتبقي: 10 أيام")
+    
+    elif text == "أرقام التواصل":
+        await update.message.reply_text("للتواصل مع الجامعة:\nالهاتف: 920000000\nالبريد الإلكتروني: info@tu.edu.sa")
+    
+    elif text == "الأسئلة الشائعة":
+        await update.message.reply_text("الأسئلة الشائعة:\n1. كيف أسجل المواد؟\n2. كيف أستعيد كلمة المرور؟\n3. كيف أستخدم البلاك بورد؟")
+    
+    elif text == "منظومة الجامعة":
+        await update.message.reply_text("رابط منظومة الجامعة: https://edugate.tu.edu.sa")
 
-# Main function
-def main():
+    elif text == "البلاك بورد":
+        await update.message.reply_text("رابط البلاك بورد: https://lms.tu.edu.sa")
+
+    else:
+        await update.message.reply_text("الرجاء اختيار خيار من الأزرار فقط.")
+
+# Launch bot
+if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    print("Bot is running...")
+    print("The bot is running...")
     app.run_polling()
-
-if __name__ == "__main__":
-    main()
