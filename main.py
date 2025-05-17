@@ -4,7 +4,6 @@ from datetime import datetime
 
 TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"  # ضع هنا توكن البوت الخاص بك
 
-# القائمة الرئيسية مع زر حساب المعدل الفصلي
 main_menu = [
     ["موعد المكافأة", "أرقام التواصل"],
     ["الأسئلة الشائعة", "تقييم الدكاترة"],
@@ -18,7 +17,45 @@ main_menu = [
 
 reply_markup = ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
 
-# أحداث التقويم الأكاديمي
+# قروبات الكليات
+colleges = [
+    ("كلية الآداب", "https://t.me/aladabTaifUniversity"),
+    ("كلية التربية", "https://t.me/educationTaifUniversity"),
+    ("الكلية التطبيقية (الدبلوم)", "https://t.me/appliedstudiesTaifUniversity"),
+    ("دبلوم المناولة الأرضية للطيران", "https://t.me/aviationTaifUniversity"),
+    ("كلية العلوم", "https://t.me/TaifUnivierstiy1"),
+    ("كلية الهندسة", "https://t.me/engineeringTaifUniversity"),
+    ("كلية الحاسبات وتقنية المعلومات", "https://t.me/computersTaifUniversity"),
+    ("كلية التصاميم والفنون التطبيقية", "https://t.me/designsTaifUniversity"),
+    ("كلية الشريعة والأنظمة", "https://t.me/+TKCYp3jPayCyUgSw"),
+    ("كلية ادارة الأعمال", "https://t.me/+na12acQgxzxkZTZk"),
+    ("كلية التقنية", "https://t.me/tvtcVocationalTaifCorporation"),
+    ("كلية الطب", "https://t.me/medicine_Tu"),
+    ("كلية طب الأسنان", "https://t.me/Dentistry_TU"),
+    ("كلية الصيدلة", "https://t.me/Pharma_DTU33"),
+    ("التمريض", "https://t.me/nursstudent"),
+    ("العلاج الطبيعي", "https://t.me/Physical_therapyTU"),
+    ("علوم الأشعة", "https://t.me/RadiologySciences"),
+    ("المختبرات الاكلينيكية", "https://t.me/labrotary_Tu"),
+]
+
+# قروبات الفروع
+branches = [
+    ("فرع تربة", "https://t.me/+LTvqFqmbNhU3Nzg0"),
+    ("فرع الخرمة", "https://t.me/+TI4sw9271iJhNDU0"),
+    ("فرع رنية", "https://t.me/+LhI_BEwURHNlNGZk"),
+]
+
+grade_to_gpa = {
+    "A+": 4.0, "A": 3.75, "B+": 3.5, "B": 3.0,
+    "C+": 2.5, "C": 2.0, "D+": 1.5, "D": 1.0, "F": 0.0
+}
+
+GPA_WAITING_INPUT = range(1)
+
+BOOKS_GROUP = "https://t.me/bookTaifUniversity"
+SUMMER_GROUP = "https://t.me/summerTaifUniversity"
+
 academic_events = [
     ("طلب إعادة القيد", "2025-01-05", "2025-01-18"),
     ("تأجيل الدراسة", "2025-01-05", "2025-01-14"),
@@ -61,30 +98,13 @@ def build_calendar_keyboard():
     keyboard.append([InlineKeyboardButton("شرح الرموز", callback_data="legend")])
     return InlineKeyboardMarkup(keyboard)
 
-# جدول تحويل الرموز إلى نقاط
-grade_to_gpa = {
-    "A+": 4.0,
-    "A": 3.75,
-    "B+": 3.5,
-    "B": 3.0,
-    "C+": 2.5,
-    "C": 2.0,
-    "D+": 1.5,
-    "D": 1.0,
-    "F": 0.0
-}
-
-# --- حساب المعدل ConversationHandler states ---
-GPA_WAITING_INPUT = range(1)
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message.text.strip()
     msg_l = msg.lower()
-    # فقط عند /start أو start تظهر الأزرار
-    if msg_l == "start" or msg_l == "/start":
+    if msg_l in ["start", "/start"]:
         await update.message.reply_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
         return
 
@@ -135,6 +155,26 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]:
             await update.message.reply_photo(img)
 
+    elif msg == "قروب بيع الكتب":
+        await update.message.reply_text("قروب بيع أو طلب الكتب لجميع تخصصات جامعة الطائف:\n" + BOOKS_GROUP)
+
+    elif msg == "قروب الفصل الصيفي":
+        await update.message.reply_text("قروب الفصل الصيفي | جامعة الطائف:\n" + SUMMER_GROUP)
+
+    elif msg == "قروبات الكليات":
+        keyboard = [
+            [InlineKeyboardButton(name, callback_data=f"college_{i}")]
+            for i, (name, _) in enumerate(colleges)
+        ]
+        await update.message.reply_text("اختر الكلية:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    elif msg == "قروبات الفروع":
+        keyboard = [
+            [InlineKeyboardButton(name, callback_data=f"branch_{i}")]
+            for i, (name, _) in enumerate(branches)
+        ]
+        await update.message.reply_text("اختر الفرع:", reply_markup=InlineKeyboardMarkup(keyboard))
+
     elif msg == "حساب المعدل الفصلي":
         await update.message.reply_text(
             "أدخل رموز التقدير وعدد الساعات لكل مادة بهذا الشكل (الرمز ثم مسافة ثم ساعات، وبين كل مادة فاصلة):\n"
@@ -174,10 +214,27 @@ async def gpa_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
     data = query.data
-    if data == "legend":
+
+    # كليات
+    if data.startswith("college_"):
+        idx = int(data.split("_")[1])
+        name, link = colleges[idx]
+        await query.answer()
+        await query.edit_message_text(f"قروب {name}:\n{link}")
+
+    # فروع
+    elif data.startswith("branch_"):
+        idx = int(data.split("_")[1])
+        name, link = branches[idx]
+        await query.answer()
+        await query.edit_message_text(f"قروب {name}:\n{link}")
+
+    # الأكاديمي وغيره كما هو...
+    elif data == "legend":
+        await query.answer()
         await query.edit_message_text("✅ = جاري\n❌ = منتهي\n⏳ = لم يبدأ بعد")
+
     elif data.startswith("event_"):
         index = int(data.split("_")[1])
         title, start, end = academic_events[index]
@@ -194,7 +251,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 
-# ConversationHandler لإدخال المعدل الفصلي
 gpa_conv_handler = ConversationHandler(
     entry_points=[MessageHandler(filters.Regex("^حساب المعدل الفصلي$"), handle_text)],
     states={
@@ -203,7 +259,6 @@ gpa_conv_handler = ConversationHandler(
     fallbacks=[],
 )
 app.add_handler(gpa_conv_handler)
-
 app.add_handler(MessageHandler(filters.TEXT, handle_text))
 app.add_handler(CallbackQueryHandler(handle_callback))
 
