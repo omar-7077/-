@@ -166,6 +166,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(name, callback_data=f"college_{i}")]
             for i, (name, _) in enumerate(colleges)
         ]
+        keyboard.append([InlineKeyboardButton("↩️ رجوع", callback_data="back_to_main")])
         await update.message.reply_text("اختر الكلية:", reply_markup=InlineKeyboardMarkup(keyboard))
 
     elif msg == "قروبات الفروع":
@@ -173,6 +174,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(name, callback_data=f"branch_{i}")]
             for i, (name, _) in enumerate(branches)
         ]
+        keyboard.append([InlineKeyboardButton("↩️ رجوع", callback_data="back_to_main")])
         await update.message.reply_text("اختر الفرع:", reply_markup=InlineKeyboardMarkup(keyboard))
 
     elif msg == "حساب المعدل الفصلي":
@@ -221,14 +223,36 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         idx = int(data.split("_")[1])
         name, link = colleges[idx]
         await query.answer()
-        await query.edit_message_text(f"قروب {name}:\n{link}")
+        await query.edit_message_text(f"قروب {name}:\n{link}\n\n↩️ للرجوع للقائمة السابقة اضغط على الزر بالأسفل.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("↩️ رجوع", callback_data="back_colleges")]]))
 
     # فروع
     elif data.startswith("branch_"):
         idx = int(data.split("_")[1])
         name, link = branches[idx]
         await query.answer()
-        await query.edit_message_text(f"قروب {name}:\n{link}")
+        await query.edit_message_text(f"قروب {name}:\n{link}\n\n↩️ للرجوع للقائمة السابقة اضغط على الزر بالأسفل.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("↩️ رجوع", callback_data="back_branches")]]))
+
+    # الرجوع من زر الكليات الفرعي
+    elif data == "back_colleges":
+        keyboard = [
+            [InlineKeyboardButton(name, callback_data=f"college_{i}")]
+            for i, (name, _) in enumerate(colleges)
+        ]
+        keyboard.append([InlineKeyboardButton("↩️ رجوع", callback_data="back_to_main")])
+        await query.edit_message_text("اختر الكلية:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    # الرجوع من زر الفروع الفرعي
+    elif data == "back_branches":
+        keyboard = [
+            [InlineKeyboardButton(name, callback_data=f"branch_{i}")]
+            for i, (name, _) in enumerate(branches)
+        ]
+        keyboard.append([InlineKeyboardButton("↩️ رجوع", callback_data="back_to_main")])
+        await query.edit_message_text("اختر الفرع:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    # الرجوع للقائمة الرئيسية
+    elif data == "back_to_main":
+        await query.edit_message_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
 
     # الأكاديمي وغيره كما هو...
     elif data == "legend":
