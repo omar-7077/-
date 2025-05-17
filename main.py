@@ -11,7 +11,7 @@ from telegram.ext import (
 from datetime import datetime
 
 import openai
-openai.api_key = "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"
+openai.api_key = "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"
 
 main_menu = [
     ["موعد المكافأة", "أرقام التواصل"],
