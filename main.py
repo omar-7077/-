@@ -10,6 +10,7 @@ from telegram.ext import (
 )
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
+import asyncio
 
 # قائمة الأزرار الرئيسية بدون زر "مساعد الذكاء الاصطناعي"
 main_menu = [
@@ -139,6 +140,8 @@ main_categories = [
 
 # قائمة لحفظ معرفات المستخدمين
 user_ids = set()
+# قواميس لحفظ آخر تايمر لكل مستخدم (للمزحة)
+user_last_timer = {}
 
 async def doctor_search_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
@@ -187,14 +190,33 @@ async def doctor_search_back_categories(update: Update, context: ContextTypes.DE
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+# وظيفة المزحة إذا بَقِي المستخدم بدون نشاط
+async def send_afk_joke(application, user_id):
+    await asyncio.sleep(10)
+    if user_last_timer.get(user_id, None) == "waiting":
+        try:
+            await application.bot.send_message(chat_id=user_id, text="وين رحت؟ لاتطول علينا 😂")
+        except Exception as e:
+            print(f"فشل إرسال المزحة للمستخدم {user_id}: {e}")
+        user_last_timer.pop(user_id, None)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_ids.add(update.effective_user.id)
+    user_id = update.effective_user.id
+    user_ids.add(user_id)
     await update.message.reply_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
+    # إعادة تشغيل المزحة
+    user_last_timer[user_id] = "waiting"
+    asyncio.create_task(send_afk_joke(context.application, user_id))
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_ids.add(update.effective_user.id)
+    user_id = update.effective_user.id
+    user_ids.add(user_id)
     msg = update.message.text.strip()
     msg_l = msg.lower()
+
+    # إعادة ضبط المؤقت للمزحة
+    user_last_timer[user_id] = "waiting"
+    asyncio.create_task(send_afk_joke(context.application, user_id))
 
     if msg_l in ["start", "/start"]:
         await update.message.reply_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
@@ -282,6 +304,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await doctor_search_start(update, context)
 
 async def gpa_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    # إعادة ضبط المؤقت للمزحة
+    user_last_timer[user_id] = "waiting"
+    asyncio.create_task(send_afk_joke(context.application, user_id))
+
     text = update.message.text
     try:
         pairs = [pair.strip() for pair in text.split(",") if pair.strip()]
@@ -312,6 +339,10 @@ async def gpa_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
+    user_id = query.from_user.id
+    # إعادة ضبط المؤقت للمزحة مع كل تفاعل زر
+    user_last_timer[user_id] = "waiting"
+    asyncio.create_task(send_afk_joke(context.application, user_id))
 
     if data.startswith("college_"):
         idx = int(data.split("_")[1])
