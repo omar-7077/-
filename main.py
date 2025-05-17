@@ -107,6 +107,88 @@ def build_calendar_keyboard():
     keyboard.append([InlineKeyboardButton("شرح الرموز", callback_data="legend")])
     return InlineKeyboardMarkup(keyboard)
 
+# ========== بيانات منسوبي الكليات ==========
+medical_colleges = [
+    ("منسوبي كلية الطب", "https://www.tu.edu.sa/Ar/كلية-الطب/92/Staff"),
+    ("منسوبي كلية طب الأسنان", "https://www.tu.edu.sa/Ar/كلية-طب-الأسنان/209/Staff"),
+    ("منسوبي كلية الصيدلة", "https://www.tu.edu.sa/Ar/كلية-الصيدلة/96/Staff"),
+    ("منسوبي كلية العلوم الطبية التطبيقية", "https://www.tu.edu.sa/Ar/كلية-العلوم-الطبية-التطبيقية/99/Staff"),
+    ("منسوبي كلية التمريض", "https://www.tu.edu.sa/Ar/كلية-التمريض/355/Staff"),
+]
+
+humanities_colleges = [
+    ("منسوبي كلية التربية", "https://www.tu.edu.sa/Ar/كلية-التربية/94/Staff"),
+    ("منسوبي كلية الآداب", "https://www.tu.edu.sa/Ar/كلية-الآداب/93/Staff"),
+    ("منسوبي الكلية التطبيقية", "https://www.tu.edu.sa/Ar/الكلية-التطبيقية/216/Staff"),
+]
+
+sharia_colleges = [
+    ("منسوبي كلية الشريعة والأنظمة", "https://www.tu.edu.sa/Ar/كلية-الشريعة-والأنظمة/95/Staff"),
+    ("منسوبي كلية إدارة الأعمال", "https://www.tu.edu.sa/Ar/كلية-إدارة-الاعمال/98/Staff"),
+]
+
+scientific_colleges = [
+    ("منسوبي كلية العلوم", "https://www.tu.edu.sa/Ar/كلية-العلوم/97/Staff"),
+    ("منسوبي كلية الهندسة", "https://www.tu.edu.sa/Ar/كلية-الهندسة/103/Staff"),
+    ("منسوبي كلية الحاسبات وتقنية المعلومات", "https://www.tu.edu.sa/Ar/كلية-الحاسبات-وتقنية-المعلومات/174/Staff"),
+    ("منسوبي كلية التصاميم والفنون التطبيقية", "https://www.tu.edu.sa/Ar/كلية-التصاميم-والفنون-التطبيقية/176/Staff"),
+]
+
+main_categories = [
+    ("الكليات الطبية", "main_medical"),
+    ("كليات العلوم الإنسانية والتربوية", "main_humanities"),
+    ("الكليات الشرعية والإدارية", "main_sharia"),
+    ("الكليات العلمية والهندسية", "main_scientific"),
+]
+
+# ========== وظائف البحث عن منسوبي الكليات ==========
+async def doctor_search_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton(name, callback_data=cb)]
+        for name, cb in main_categories
+    ]
+    keyboard.append([InlineKeyboardButton("↩️ رجوع", callback_data="back_to_main")])
+    await update.message.reply_text(
+        "اختر تصنيف الكلية:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def doctor_search_category(update: Update, context: ContextTypes.DEFAULT_TYPE, category):
+    colleges = []
+    if category == "main_medical":
+        colleges = medical_colleges
+    elif category == "main_humanities":
+        colleges = humanities_colleges
+    elif category == "main_sharia":
+        colleges = sharia_colleges
+    elif category == "main_scientific":
+        colleges = scientific_colleges
+
+    keyboard = [
+        [InlineKeyboardButton(name, url=link)]
+        for name, link in colleges
+    ]
+    keyboard.append([InlineKeyboardButton("↩️ رجوع", callback_data="back_doctor_categories")])
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(
+        "اختر الكلية:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def doctor_search_back_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton(name, callback_data=cb)]
+        for name, cb in main_categories
+    ]
+    keyboard.append([InlineKeyboardButton("↩️ رجوع", callback_data="back_to_main")])
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(
+        "اختر تصنيف الكلية:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
 
@@ -195,6 +277,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return GPA_WAITING_INPUT
 
+    elif msg == "ابحث عن دكتورك":
+        await doctor_search_start(update, context)
+
 async def gpa_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     try:
@@ -241,6 +326,14 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
         await query.edit_message_text(f"قروب {name}:\n{link}\n\n↩️ للرجوع للقائمة السابقة اضغط على الزر بالأسفل.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("↩️ رجوع", callback_data="back_branches")]]))
 
+    # منسوبي الكليات (زر رئيسي)
+    elif data in ["main_medical", "main_humanities", "main_sharia", "main_scientific"]:
+        await doctor_search_category(update, context, data)
+
+    # زر رجوع من قائمة الكليات الفرعية إلى الرئيسية (منسوبي الكليات)
+    elif data == "back_doctor_categories":
+        await doctor_search_back_categories(update, context)
+
     # الرجوع من زر الكليات الفرعي
     elif data == "back_colleges":
         keyboard = [
@@ -263,7 +356,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "back_to_main":
         await query.edit_message_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
 
-    # الأكاديمي وغيره كما هو...
     elif data == "legend":
         await query.answer()
         await query.edit_message_text("✅ = جاري\n❌ = منتهي\n⏳ = لم يبدأ بعد")
@@ -281,193 +373,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.edit_message_text(f"{title} انتهى.", reply_markup=build_calendar_keyboard())
 
-# ============ البحث عن دكتورك "كلية الطب" ===============
-faculty_medicine = [
-    {"name": "مجتبى فاروقرانا محمد فاروق", "email": "drmujtabarana@tu.edu.sa"},
-    {"name": "حاتم علي الشيخ النور", "email": "helsheikh@tu.edu.sa"},
-    {"name": "عويض محمد عويض المالكي", "email": "oalmalki@tu.edu.sa"},
-    {"name": "سعيد كامل محمد بلال", "email": "sbelal@tu.edu.sa"},
-    {"name": "محمد عبدالرحمن عبدالعزيز البليهد", "email": "mabulihd@tu.edu.sa"},
-    {"name": "شادي عبدالحميد بهاء الدين تمر", "email": "shaditamur@tu.edu.sa"},
-    {"name": "فيصل خالد حميان الحمياني", "email": "f.alhomayani@tu.edu.sa"},
-    {"name": "ايمن المغاوري القناوى علي", "email": "elkenawy@tu.edu.sa"},
-    {"name": "يحيى أحمد بكر فقيه", "email": "yahya@tu.edu.sa"},
-    {"name": "عبد الحميد سعد محمد الغامدي", "email": "ghamdi@tu.edu.sa"},
-    {"name": "حسام الدين حسين عثمان إبراهيم", "email": "h.hussein@tu.edu.sa"},
-    {"name": "علي حسن صحفان الزهراني", "email": "alisahfan@tu.edu.sa"},
-    {"name": "اشرف يحي عبود البركاتي", "email": "a.albrakati@tu.edu.sa"},
-    {"name": "عبد الله عائد محمد الحارثي", "email": "aaharthi@tu.edu.sa"},
-    {"name": "غاليه عبيد فالح النفيعي", "email": "ghaliah.o@tu.edu.sa"},
-    {"name": "هاشم عبد الرحيم هاشم بخاري", "email": "h.abdulrahim@tu.edu.sa"},
-    {"name": "احمد سعد احمد الزهراني", "email": "as.alzahrani@tu.edu.sa"},
-    {"name": "انوار مصطفى محمود شمس", "email": "a.shams@tu.edu.sa"},
-    {"name": "عدنان عبد الله عطاالله الطويرقي", "email": "a.altwerqi@tu.edu.sa"},
-    {"name": "اكرم عبد العزيز عطية الله الصحفي", "email": "ak.alsahafi@tu.edu.sa"},
-    {"name": "عوض سمير عوض الصبان", "email": "awsabban@tu.edu.sa"},
-    {"name": "مصطفى محمد فرج دسوقي", "email": "mmfarag@tu.edu.sa"},
-    {"name": "فاطمه سمير حسن عرابي", "email": "fatimah.s@tu.edu.sa"},
-    {"name": "سعد سالم مسفر الزهراني", "email": "salzahrani@tu.edu.sa"},
-    {"name": "عزه حسن عبد الرحمن حسين", "email": "dr.azza@tu.edu.sa"},
-    {"name": "منال شعراوي حسين محمد", "email": "m_sharaway@tu.edu.sa"},
-    {"name": "عماد عزمي عوضين محمد ابراهيم", "email": "imadmohamed@tu.edu.sa"},
-    {"name": "ايمن رجب بيومي عبد السيد", "email": "aymanr@tu.edu.sa"},
-    {"name": "احمد حسن عبد الرحمن حسن الرشيدي", "email": "a.elrashedy@tu.edu.sa"},
-    {"name": "ايمن كمال عبد الحميد اسماعيل", "email": "aymanka@tu.edu.sa"},
-    {"name": "طلال عبدالرحمن مبروك الثمالي", "email": "tthomali@tu.edu.sa"},
-    {"name": "احمد سيد عبدالمنعم سيد", "email": "asa@tu.edu.sa"},
-    {"name": "سوزان عطية مصطفى السيد", "email": "s.atia@tu.edu.sa"},
-    {"name": "عبد الله علي مرشد الحسني الزهراني", "email": "abdullazahrani@tu.edu.sa"},
-    {"name": "احمد عبد الباسط محمد قرقني بخاري", "email": "abukhari@tu.edu.sa"},
-    {"name": "ابراهيم يوسف عبد الله ياسين", "email": "iyaseen@tu.edu.sa"},
-    {"name": "رائد علي محمد الثبيتي", "email": "t.raed@tu.edu.sa"},
-    {"name": "عبير ناصر محمد الغالبي", "email": "abeer.n@tu.edu.sa"},
-    {"name": "نهى نبيل عبد الله فلفلان", "email": "nn.abdullah@tu.edu.sa"},
-    {"name": "سلطان عبد الله احمد العاصمي المالكي", "email": "sultanab@tu.edu.sa"},
-    {"name": "مريم سعود خلاوي الجعيد", "email": "maryam@tu.edu.sa"},
-    {"name": "بلال عمر عبد الرحمن الجفري", "email": "b.aljiffry@tu.edu.sa"},
-    {"name": "عبد الله محمد نور عبد الله خياط", "email": "khayatam@tu.edu.sa"},
-    {"name": "جمال عبدالله صالح البشري", "email": "j.beshri@tu.edu.sa"},
-    {"name": "ندى حسن محمد احمد", "email": "h.nada@tu.edu.sa"},
-    {"name": "عبدالمجيد مسفر صالح القثامي", "email": "a.gethami@tu.edu.sa"},
-    {"name": "خالد محمد غازي الحمياني", "email": "k.homayani@tu.edu.sa"},
-    {"name": "خالد محمد احمد الزهراني", "email": "dr.k.al_zahrani@tu.edu.sa"},
-    {"name": "محمد سالم محمد السعيد", "email": "m.alsaeed@tu.edu.sa"},
-    {"name": "دلال محي الدين محمدعلي نمنقاني", "email": "d.nemenqani@tu.edu.sa"},
-    {"name": "اماني محمود احمد عبداللطيف", "email": "amany.m@tu.edu.sa"},
-    {"name": "امال ابراهيم الصديق محمد نور", "email": "a.ibraheem@tu.edu.sa"},
-    {"name": "ضيف الله محمد عوين العبود", "email": "d.alaboud@tu.edu.sa"},
-    {"name": "محمد حاتم إبراهيم خيري عوض الله", "email": "m.hatem@tu.edu.sa"},
-    {"name": "هشام عبد الباسط محمد قرقني بخاري", "email": "h.bokhari@tu.edu.sa"},
-    {"name": "علي خير الله علي الزهراني", "email": "a.zahrani@tu.edu.sa"},
-    {"name": "علاء عصام اسماعيل يونس", "email": "aeyounes@tu.edu.sa"},
-    {"name": "نسرين خالد عارف البزره", "email": "dr.nisreen@tu.edu.sa"},
-    {"name": "علا احمد شوقي فرغلي", "email": "o.erfan@tu.edu.sa"},
-    {"name": "ايمان علي محمد خليفة", "email": "e.khalifa@tu.edu.sa"},
-    {"name": "احمد محمد محمد محمد", "email": "a.mohamed@tu.edu.sa"},
-    {"name": "ياسر عواض سعيد الطويرقي", "email": "y.tuwairaqi@tu.edu.sa"},
-    {"name": "لطفي فهمي محمد عيسى", "email": "l.issa@tu.edu.sa"},
-    {"name": "طارق محمد علي محمد حسين", "email": "t.hussien@tu.edu.sa"},
-    {"name": "علي نعمان علي النواوي", "email": "a.nawawy@tu.edu.sa"},
-    {"name": "عواطف المحمدي فرج ادريس", "email": "a.edrees@tu.edu.sa"},
-    {"name": "فاطمة صفي الدين محمد صادق محمود", "email": "fatimah.m@tu.edu.sa"},
-    {"name": "عدنان علي أبوطالب مباركي", "email": "a.mubaraki@tu.edu.sa"},
-    {"name": "أحمد فهد عطيه الثبيتي", "email": "ah.althobity@tu.edu.sa"},
-    {"name": "سحر محمد عبدالله النفيعي", "email": "sahar.m@tu.edu.sa"},
-    {"name": "الاء عبدالرحمن يوسف اسماعيل", "email": "alaa.s@tu.edu.sa"},
-    {"name": "أحمد محمد حميد النمري", "email": "amnemari@tu.edu.sa"},
-    {"name": "يسري عبدالحميد حواش الصباغ", "email": "y.hawash@tu.edu.sa"},
-    {"name": "مني جمعه محمد عامر", "email": "mona.g@tu.edu.sa"},
-    {"name": "باسم حسن حسين العيسوي", "email": "b.elesawy@tu.edu.sa"},
-    {"name": "نهاد احمد محمد النشار", "email": "nihad.a@tu.edu.sa"},
-    {"name": "نسرين محمد سعيد المرجوشي", "email": "nesrien.m@tu.edu.sa"},
-    {"name": "امال عبد الرسول سليمان الحصري", "email": "amalelhosary@tu.edu.sa"},
-    {"name": "محمد فهد عطيه الثبيتي", "email": "m.althobity@tu.edu.sa"},
-    {"name": "حماد طفيل شودري", "email": "h.hammad@tu.edu.sa"},
-    {"name": "عزه علي عبدالعطيم طه", "email": "azzaali@tu.edu.sa"},
-    {"name": "عبدالله معيوض سالم الصواط", "email": "a.alsowat@tu.edu.sa"},
-    {"name": "عبدالرحمن غرم الله سعيد الحربي المالكي", "email": "ag.almalki@tu.edu.sa"},
-    {"name": "عبدالعزيز محمد علي العميري الشهري", "email": "ashehri@tu.edu.sa"},
-    {"name": "خالد عبدالله عبادل السواط", "email": "k.alswat@tu.edu.sa"},
-    {"name": "ايمن عبدالباقي أحمد عطاالله", "email": "dr.ayman@tu.edu.sa"},
-    {"name": "تامر محمد عبدالرحمن عبدالعاطي", "email": "t.tamer@tu.edu.sa"},
-    {"name": "رحاب أحمد كرم عبدالفتاح محمد عطا", "email": "Rehab.A@tu.edu.sa"},
-    {"name": "نهى السيد حسن فرج", "email": "nohafarag@tu.edu.sa"},
-    {"name": "فرزانا رضوان أرائين شاهد", "email": "farzana.r@tu.edu.sa"},
-    {"name": "اريج احمد تلودي تركستاني", "email": "areeg.a@tu.edu.sa"},
-    {"name": "ماجد عبد ربه وصل المورقي", "email": "mourgi@tu.edu.sa"},
-    {"name": "عبدالمحسن محمد سراج بكر احمد جي", "email": "ahmadjee@tu.edu.sa"},
-    {"name": "ابراهيم عبدالعزيز ابراهيم الغامدي", "email": "Iaghamdi@tu.edu.sa"},
-    {"name": "ياسر حسين حسن النفيعي", "email": "y.alnofaiey@tu.edu.sa"},
-    {"name": "عبدالرحمن ناصر زاهر الغامدي", "email": "alghamdi.a@tu.edu.sa"},
-    {"name": "محمدعيد محمود ابراهيم محفوظ", "email": "m.mahfouz@tu.edu.sa"},
-    {"name": "منال احمد محمد النشار", "email": "m.elnashar@tu.edu.sa"},
-    {"name": "ريحاب شعبان عبدالمقصود السيد", "email": "shaaban.y@tu.edu.sa"},
-    {"name": "هاني احمد ابراهيم ابو زيد", "email": "h.abozaid@tu.edu.sa"},
-    {"name": "منذر عبدالله سفر الشهراني", "email": "m.shahrani@tu.edu.sa"},
-    {"name": "رشا حسن سليمان على", "email": "y.soliman@tu.edu.sa"},
-    {"name": "ضيف الله معيد رداد المنصوري", "email": "d.almansouri@tu.edu.sa"},
-    {"name": "شذى هلال عبدالله الزيادي", "email": "shatha.h@tu.edu.sa"},
-    {"name": "توفيق زهير عبدالله ال ليلح", "email": "ta.alshehri@tu.edu.sa"},
-    {"name": "ابرار سعد نافع السلمي", "email": "abrar.s@tu.edu.sa"},
-    {"name": "احمد عبدالله عبادل السواط", "email": "a.alsuuat@tu.edu.sa"},
-    {"name": "نايف عيضه سعود العميري", "email": "n.edah@tu.edu.sa"},
-    {"name": "يحيى عبدالله موسى الزهراني", "email": "y.mousa@tu.edu.sa"},
-    {"name": "سماء ابوالفتوح طه محمد سالم", "email": "sama.m@tu.edu.sa"},
-    {"name": "اسماء فرغلي حسن محمد", "email": "assma.f@tu.edu.sa"},
-    {"name": "اعتماد عبدالجليل عبدالخالق علي", "email": "eetmad.a@tu.edu.sa"},
-    {"name": "ايمان محي ابراهيم يوسف", "email": "emyoussef@tu.edu.sa"},
-    {"name": "سمير احمد حسن بدر", "email": "s.badr@tu.edu.sa"},
-    {"name": "سالم محسن سالم الزهراني", "email": "sa.mohsen@tu.edu.sa"},
-    {"name": "فهد ابراهيم علي الجعيد", "email": "f.aljuaid@tu.edu.sa"},
-    {"name": "هايل تركي لافي الحارثي", "email": "h.t.alharthi@tu.edu.sa"},
-    {"name": "سامي سعود غزاي العضياني الحارثي", "email": "s.s.alharthi@tu.edu.sa"},
-    {"name": "محمد ابراهيم جابر الجعيد العتيبي", "email": "m.jaber@tu.edu.sa"},
-    {"name": "هيفاء عويض عمار العتيبي", "email": "a.haifa@tu.edu.sa"},
-    {"name": "انعام محمد علي جمال جنينه", "email": "anam.m@tu.edu.sa"},
-    {"name": "حسن علي حسن الشهري", "email": "hshehri@tu.edu.sa"},
-    {"name": "أفنان مسفر ناجم الدهاسي العتيبي", "email": "amotaiby@tu.edu.sa"},
-    {"name": "منى محمد علي محمد", "email": "mamohamed@tu.edu.sa"},
-    {"name": "امين عطاالمنان الامين المكي", "email": "amakki@tu.edu.sa"},
-    {"name": "خالد ابراهيم حسن ابراهيم", "email": "kebraheem@tu.edu.sa"},
-    {"name": "ايمان سعد محمد بيومي", "email": "esbayoumy@tu.edu.sa"},
-    {"name": "منال المطري محمد البشير", "email": "mebasher@tu.edu.sa"},
-    {"name": "عفت عمران عمران نذير", "email": "imnazir@tu.edu.sa"},
-    {"name": "هنوف حسن محمد الحسيكي الحارثي", "email": "hmharthy@tu.edu.sa"},
-    {"name": "ناهد ابراهيم محمد جمعة", "email": "nigomaa@tu.edu.sa"},
-    {"name": "امنه فضل بشير فضل", "email": "affadl@tu.edu.sa"},
-    {"name": "حنان احمد فتحي عبد الموجود شلبي", "email": "hashalaby@tu.edu.sa"},
-    {"name": "لبنى احمد متولي محمد", "email": "lamohomed@tu.edu.sa"},
-    {"name": "محمد فتحي عباس محمد", "email": "mfabbas@tu.edu.sa"},
-    {"name": "نادر محمد محمد محمد اسماعيل", "email": "n.nader@tu.edu.sa"},
-    {"name": "غادة حسين عبد الله الحسن", "email": "ghelhassan@tu.edu.sa"},
-    {"name": "علي مسفر سفير عيدان الخثعمي", "email": "a.alkhathami@tu.edu.sa"},
-]
-
-DOCTOR_SEARCH_FACULTY, DOCTOR_SEARCH_DOCTOR = range(2)
-
-async def start_doctor_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("كلية الطب", callback_data="faculty_medicine")]
-    ]
-    await update.message.reply_text(
-        "اختر الكلية:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    return DOCTOR_SEARCH_FACULTY
-
-async def select_faculty(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    keyboard = [
-        [InlineKeyboardButton(doc["name"], callback_data=f"doctor_{i}")]
-        for i, doc in enumerate(faculty_medicine)
-    ]
-    await query.answer()
-    await query.edit_message_text(
-        "اختر الدكتور:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    return DOCTOR_SEARCH_DOCTOR
-
-async def select_doctor(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    idx = int(query.data.replace("doctor_", ""))
-    doctor = faculty_medicine[idx]
-    name = doctor["name"]
-    email = doctor["email"]
-    msg = f"👤 {name}\n📧 {email}"
-    await query.answer()
-    await query.edit_message_text(msg)
-    return ConversationHandler.END
-
-doctor_conv_handler = ConversationHandler(
-    entry_points=[MessageHandler(filters.Regex("^ابحث عن دكتورك$"), start_doctor_search)],
-    states={
-        DOCTOR_SEARCH_FACULTY: [CallbackQueryHandler(select_faculty, pattern="^faculty_medicine$")],
-        DOCTOR_SEARCH_DOCTOR: [CallbackQueryHandler(select_doctor, pattern="^doctor_")],
-    },
-    fallbacks=[],
-)
-
 # ================= إقلاع التطبيق ===============
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
@@ -478,7 +383,6 @@ gpa_conv_handler = ConversationHandler(
     },
     fallbacks=[],
 )
-app.add_handler(doctor_conv_handler)
 app.add_handler(gpa_conv_handler)
 app.add_handler(MessageHandler(filters.TEXT, handle_text))
 app.add_handler(CallbackQueryHandler(handle_callback))
