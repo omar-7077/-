@@ -9,10 +9,9 @@ from telegram.ext import (
     ConversationHandler,
 )
 from datetime import datetime
+from apscheduler.schedulers.background import BackgroundScheduler
 
-import openai
-openai.api_key = "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"
-
+# قائمة الأزرار الرئيسية بدون زر "مساعد الذكاء الاصطناعي"
 main_menu = [
     ["موعد المكافأة", "أرقام التواصل"],
     ["الأسئلة الشائعة", "تقييم الدكاترة"],
@@ -22,9 +21,8 @@ main_menu = [
     ["قروب الفصل الصيفي", "قروبات الكليات"],
     ["قروبات الفروع", "دليل التخصصات"],
     ["التقويم الأكاديمي", "حساب المعدل الفصلي"],
-    ["ابحث عن دكتورك", "مساعد الذكاء الاصطناعي"],  # زر الذكاء الاصطناعي
+    ["ابحث عن دكتورك"]
 ]
-
 reply_markup = ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
 
 colleges = [
@@ -139,6 +137,9 @@ main_categories = [
     ("الكليات العلمية والهندسية", "main_scientific"),
 ]
 
+# قائمة لحفظ معرفات المستخدمين
+user_ids = set()
+
 async def doctor_search_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton(name, callback_data=cb)]
@@ -151,19 +152,19 @@ async def doctor_search_start(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
 
 async def doctor_search_category(update: Update, context: ContextTypes.DEFAULT_TYPE, category):
-    colleges = []
+    colleges_list = []
     if category == "main_medical":
-        colleges = medical_colleges
+        colleges_list = medical_colleges
     elif category == "main_humanities":
-        colleges = humanities_colleges
+        colleges_list = humanities_colleges
     elif category == "main_sharia":
-        colleges = sharia_colleges
+        colleges_list = sharia_colleges
     elif category == "main_scientific":
-        colleges = scientific_colleges
+        colleges_list = scientific_colleges
 
     keyboard = [
         [InlineKeyboardButton(name, url=link)]
-        for name, link in colleges
+        for name, link in colleges_list
     ]
     keyboard.append([InlineKeyboardButton("↩️ رجوع", callback_data="back_doctor_categories")])
     query = update.callback_query
@@ -187,27 +188,13 @@ async def doctor_search_back_categories(update: Update, context: ContextTypes.DE
     )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_ids.add(update.effective_user.id)
     await update.message.reply_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_ids.add(update.effective_user.id)
     msg = update.message.text.strip()
     msg_l = msg.lower()
-
-    # الذكاء الاصطناعي
-    if context.user_data.get('ai_chat'):
-        context.user_data['ai_chat'] = False
-        question = msg
-        await update.message.reply_text("جارٍ التفكير...")
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": question}]
-            )
-            ai_answer = response['choices'][0]['message']['content']
-            await update.message.reply_text(ai_answer)
-        except Exception as e:
-            await update.message.reply_text("حدث خطأ أثناء التواصل مع الذكاء الاصطناعي.")
-        return
 
     if msg_l in ["start", "/start"]:
         await update.message.reply_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
@@ -293,11 +280,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif msg == "ابحث عن دكتورك":
         await doctor_search_start(update, context)
-
-    elif msg == "مساعد الذكاء الاصطناعي":
-        await update.message.reply_text("اكتب سؤالك للذكاء الاصطناعي:")
-        context.user_data['ai_chat'] = True
-        return
 
 async def gpa_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
@@ -385,17 +367,36 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.edit_message_text(f"{title} انتهى.", reply_markup=build_calendar_keyboard())
 
-app = ApplicationBuilder().token("7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY").build()
-app.add_handler(CommandHandler("start", start))
-gpa_conv_handler = ConversationHandler(
-    entry_points=[MessageHandler(filters.Regex("^حساب المعدل الفصلي$"), handle_text)],
-    states={
-        GPA_WAITING_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, gpa_input)]
-    },
-    fallbacks=[],
-)
-app.add_handler(gpa_conv_handler)
-app.add_handler(MessageHandler(filters.TEXT, handle_text))
-app.add_handler(CallbackQueryHandler(handle_callback))
+# وظيفة التذكير كل 3 ساعات
+async def reminder_callback(application):
+    for user_id in user_ids:
+        try:
+            await application.bot.send_message(chat_id=user_id, text="وحشتنا! ماعندك سؤال؟")
+        except Exception as e:
+            print(f"فشل إرسال التذكير للمستخدم {user_id}: {e}")
 
-app.run_polling()
+# كود التشغيل
+if __name__ == "__main__":
+    app = ApplicationBuilder().token("7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY").build()
+    app.add_handler(CommandHandler("start", start))
+    gpa_conv_handler = ConversationHandler(
+        entry_points=[MessageHandler(filters.Regex("^حساب المعدل الفصلي$"), handle_text)],
+        states={
+            GPA_WAITING_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, gpa_input)]
+        },
+        fallbacks=[],
+    )
+    app.add_handler(gpa_conv_handler)
+    app.add_handler(MessageHandler(filters.TEXT, handle_text))
+    app.add_handler(CallbackQueryHandler(handle_callback))
+
+    # جدولة التذكير كل 3 ساعات
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(
+        lambda: app.create_task(reminder_callback(app)),
+        "interval",
+        hours=3
+    )
+    scheduler.start()
+
+    app.run_polling()
