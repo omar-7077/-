@@ -177,4 +177,4 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("https://maps.app.goo.gl/BPwmcoQ7T16CT2FX8")
 
     elif msg == "حفل التخرج":
-        await update.message.reply_photo("https://www
+        await update.message.reply_photo("https://www2.0zz0.com/2025/05/15/07/864959598.jpeg")
