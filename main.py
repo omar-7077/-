@@ -12,19 +12,21 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 import asyncio
 
-# قائمة الأزرار الرئيسية بدون زر "مساعد الذكاء الاصطناعي"
+# قائمة الأزرار الرئيسية (حُذف زر "الأسئلة الشائعة" وأُضيف "دليل التحويل من التخصصات")
 main_menu = [
     ["موعد المكافأة", "أرقام التواصل"],
-    ["الأسئلة الشائعة", "تقييم الدكاترة"],
-    ["منظومة الجامعة", "البلاك بورد"],
-    ["موقع جامعة الطلاب", "موقع جامعة الطالبات"],
-    ["حفل التخرج", "قروب بيع الكتب"],
-    ["قروب الفصل الصيفي", "قروبات الكليات"],
-    ["قروبات الفروع", "دليل التخصصات"],
-    ["التقويم الأكاديمي", "حساب المعدل الفصلي"],
-    ["ابحث عن دكتورك"]
+    ["تقييم الدكاترة", "منظومة الجامعة"],
+    ["البلاك بورد", "موقع جامعة الطلاب"],
+    ["موقع جامعة الطالبات", "حفل التخرج"],
+    ["قروب بيع الكتب", "قروب الفصل الصيفي"],
+    ["قروبات الكليات", "قروبات الفروع"],
+    ["دليل التخصصات", "التقويم الأكاديمي"],
+    ["حساب المعدل الفصلي", "ابحث عن دكتورك"],
+    ["دليل التحويل من التخصصات"]
 ]
 reply_markup = ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
+
+# ... تعريف بقية القوائم والمتغيرات كما في كودك ...
 
 colleges = [
     ("كلية الآداب", "https://t.me/aladabTaifUniversity"),
@@ -138,9 +140,7 @@ main_categories = [
     ("الكليات العلمية والهندسية", "main_scientific"),
 ]
 
-# قائمة لحفظ معرفات المستخدمين
 user_ids = set()
-# قواميس لحفظ آخر تايمر لكل مستخدم (للمزحة)
 user_last_timer = {}
 
 async def doctor_search_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -190,7 +190,6 @@ async def doctor_search_back_categories(update: Update, context: ContextTypes.DE
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# وظيفة المزحة إذا بَقِي المستخدم بدون نشاط
 async def send_afk_joke(application, user_id):
     await asyncio.sleep(10)
     if user_last_timer.get(user_id, None) == "waiting":
@@ -204,7 +203,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_ids.add(user_id)
     await update.message.reply_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
-    # إعادة تشغيل المزحة
     user_last_timer[user_id] = "waiting"
     asyncio.create_task(send_afk_joke(context.application, user_id))
 
@@ -214,7 +212,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message.text.strip()
     msg_l = msg.lower()
 
-    # إعادة ضبط المؤقت للمزحة
     user_last_timer[user_id] = "waiting"
     asyncio.create_task(send_afk_joke(context.application, user_id))
 
@@ -302,10 +299,12 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif msg == "ابحث عن دكتورك":
         await doctor_search_start(update, context)
+    
+    elif msg == "دليل التحويل من التخصصات":
+        await update.message.reply_photo("https://www2.0zz0.com/2025/05/17/23/580745112.jpeg")
 
 async def gpa_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    # إعادة ضبط المؤقت للمزحة
     user_last_timer[user_id] = "waiting"
     asyncio.create_task(send_afk_joke(context.application, user_id))
 
@@ -340,7 +339,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
     user_id = query.from_user.id
-    # إعادة ضبط المؤقت للمزحة مع كل تفاعل زر
     user_last_timer[user_id] = "waiting"
     asyncio.create_task(send_afk_joke(context.application, user_id))
 
@@ -398,7 +396,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.edit_message_text(f"{title} انتهى.", reply_markup=build_calendar_keyboard())
 
-# وظيفة التذكير كل 3 ساعات
 async def reminder_callback(application):
     for user_id in user_ids:
         try:
@@ -406,7 +403,6 @@ async def reminder_callback(application):
         except Exception as e:
             print(f"فشل إرسال التذكير للمستخدم {user_id}: {e}")
 
-# كود التشغيل
 if __name__ == "__main__":
     app = ApplicationBuilder().token("7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY").build()
     app.add_handler(CommandHandler("start", start))
@@ -421,7 +417,6 @@ if __name__ == "__main__":
     app.add_handler(MessageHandler(filters.TEXT, handle_text))
     app.add_handler(CallbackQueryHandler(handle_callback))
 
-    # جدولة التذكير كل 3 ساعات
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         lambda: app.create_task(reminder_callback(app)),
