@@ -10,7 +10,8 @@ from telegram.ext import (
 )
 from datetime import datetime
 
-TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"  # ضع هنا توكن البوت الخاص بك
+import openai
+openai.api_key = "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"
 
 main_menu = [
     ["موعد المكافأة", "أرقام التواصل"],
@@ -21,12 +22,11 @@ main_menu = [
     ["قروب الفصل الصيفي", "قروبات الكليات"],
     ["قروبات الفروع", "دليل التخصصات"],
     ["التقويم الأكاديمي", "حساب المعدل الفصلي"],
-    ["ابحث عن دكتورك"],  # زر البحث عن دكتورك
+    ["ابحث عن دكتورك", "مساعد الذكاء الاصطناعي"],  # زر الذكاء الاصطناعي
 ]
 
 reply_markup = ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
 
-# قروبات الكليات
 colleges = [
     ("كلية الآداب", "https://t.me/aladabTaifUniversity"),
     ("كلية التربية", "https://t.me/educationTaifUniversity"),
@@ -48,7 +48,6 @@ colleges = [
     ("المختبرات الاكلينيكية", "https://t.me/labrotary_Tu"),
 ]
 
-# قروبات الفروع
 branches = [
     ("فرع تربة", "https://t.me/+LTvqFqmbNhU3Nzg0"),
     ("فرع الخرمة", "https://t.me/+TI4sw9271iJhNDU0"),
@@ -107,7 +106,6 @@ def build_calendar_keyboard():
     keyboard.append([InlineKeyboardButton("شرح الرموز", callback_data="legend")])
     return InlineKeyboardMarkup(keyboard)
 
-# ========== بيانات منسوبي الكليات ==========
 medical_colleges = [
     ("منسوبي كلية الطب", "https://www.tu.edu.sa/Ar/كلية-الطب/92/Staff"),
     ("منسوبي كلية طب الأسنان", "https://www.tu.edu.sa/Ar/كلية-طب-الأسنان/209/Staff"),
@@ -141,7 +139,6 @@ main_categories = [
     ("الكليات العلمية والهندسية", "main_scientific"),
 ]
 
-# ========== وظائف البحث عن منسوبي الكليات ==========
 async def doctor_search_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton(name, callback_data=cb)]
@@ -195,6 +192,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message.text.strip()
     msg_l = msg.lower()
+
+    # الذكاء الاصطناعي
+    if context.user_data.get('ai_chat'):
+        context.user_data['ai_chat'] = False
+        question = msg
+        await update.message.reply_text("جارٍ التفكير...")
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": question}]
+            )
+            ai_answer = response['choices'][0]['message']['content']
+            await update.message.reply_text(ai_answer)
+        except Exception as e:
+            await update.message.reply_text("حدث خطأ أثناء التواصل مع الذكاء الاصطناعي.")
+        return
+
     if msg_l in ["start", "/start"]:
         await update.message.reply_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
         return
@@ -280,6 +294,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif msg == "ابحث عن دكتورك":
         await doctor_search_start(update, context)
 
+    elif msg == "مساعد الذكاء الاصطناعي":
+        await update.message.reply_text("اكتب سؤالك للذكاء الاصطناعي:")
+        context.user_data['ai_chat'] = True
+        return
+
 async def gpa_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     try:
@@ -312,29 +331,24 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
 
-    # كليات
     if data.startswith("college_"):
         idx = int(data.split("_")[1])
         name, link = colleges[idx]
         await query.answer()
         await query.edit_message_text(f"قروب {name}:\n{link}\n\n↩️ للرجوع للقائمة السابقة اضغط على الزر بالأسفل.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("↩️ رجوع", callback_data="back_colleges")]]))
 
-    # فروع
     elif data.startswith("branch_"):
         idx = int(data.split("_")[1])
         name, link = branches[idx]
         await query.answer()
         await query.edit_message_text(f"قروب {name}:\n{link}\n\n↩️ للرجوع للقائمة السابقة اضغط على الزر بالأسفل.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("↩️ رجوع", callback_data="back_branches")]]))
 
-    # منسوبي الكليات (زر رئيسي)
     elif data in ["main_medical", "main_humanities", "main_sharia", "main_scientific"]:
         await doctor_search_category(update, context, data)
 
-    # زر رجوع من قائمة الكليات الفرعية إلى الرئيسية (منسوبي الكليات)
     elif data == "back_doctor_categories":
         await doctor_search_back_categories(update, context)
 
-    # الرجوع من زر الكليات الفرعي
     elif data == "back_colleges":
         keyboard = [
             [InlineKeyboardButton(name, callback_data=f"college_{i}")]
@@ -343,7 +357,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append([InlineKeyboardButton("↩️ رجوع", callback_data="back_to_main")])
         await query.edit_message_text("اختر الكلية:", reply_markup=InlineKeyboardMarkup(keyboard))
 
-    # الرجوع من زر الفروع الفرعي
     elif data == "back_branches":
         keyboard = [
             [InlineKeyboardButton(name, callback_data=f"branch_{i}")]
@@ -352,7 +365,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append([InlineKeyboardButton("↩️ رجوع", callback_data="back_to_main")])
         await query.edit_message_text("اختر الفرع:", reply_markup=InlineKeyboardMarkup(keyboard))
 
-    # الرجوع للقائمة الرئيسية
     elif data == "back_to_main":
         await query.edit_message_text("أهلًا بك، اختر من القائمة:", reply_markup=reply_markup)
 
@@ -373,8 +385,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.edit_message_text(f"{title} انتهى.", reply_markup=build_calendar_keyboard())
 
-# ================= إقلاع التطبيق ===============
-app = ApplicationBuilder().token(TOKEN).build()
+app = ApplicationBuilder().token("7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY").build()
 app.add_handler(CommandHandler("start", start))
 gpa_conv_handler = ConversationHandler(
     entry_points=[MessageHandler(filters.Regex("^حساب المعدل الفصلي$"), handle_text)],
