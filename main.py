@@ -12,7 +12,7 @@ main_menu = [
     ["حفل التخرج", "دليل التخصصات"],
     ["قروب بيع الكتب", "قروب الفصل الصيفي"],
     ["قروبات الكليات", "قروبات فروع الجامعة"],
-    ["التقويم الأكاديمي"]
+    ["التقويم الأكاديمي", "حساب المعدل الفصلي"]  # أضفت هنا زر حساب المعدل
 ]
 
 reply_markup = ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
@@ -69,6 +69,19 @@ async def welcome_if_needed(update: Update):
         return True
     return False
 
+# قاموس درجات مع النقاط لحساب المعدل من 4
+GRADE_POINTS = {
+    "A+": 4.0,
+    "A": 3.75,
+    "B+": 3.5,
+    "B": 3.0,
+    "C+": 2.5,
+    "C": 2.0,
+    "D+": 1.5,
+    "D": 1.0,
+    "F": 0.0
+}
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await welcome_if_needed(update)
 
@@ -76,8 +89,69 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await welcome_if_needed(update):
         return
 
-    msg = update.message.text
+    msg = update.message.text.strip()
 
+    # هنا بدأنا إضافة دعم حساب المعدل
+    if msg == "حساب المعدل الفصلي":
+        context.user_data["gpa_entries"] = []
+        await update.message.reply_text(
+            "حياك! 🚀 جاهز لحساب معدلك الفصلي؟\n"
+            "أرسل المواد بصيغة:\n"
+            "عدد الساعات/الدرجة مثل:\n"
+            "`3/A+ 4/B 2/C+`\n\n"
+            "بعد ما تخلص، أرسل *حساب* لحساب المعدل، أو *إلغاء* للخروج.",
+            parse_mode="Markdown"
+        )
+        return
+
+    if "gpa_entries" in context.user_data:
+        if msg.lower() == "حساب":
+            entries = context.user_data.get("gpa_entries", [])
+            if not entries:
+                await update.message.reply_text("❌ ما أدخلت أي مواد، أرسل المواد أولاً.")
+                return
+            # عرض المواد للتأكيد
+            text = "هذه المواد التي أدخلتها:\n"
+            for i, (hours, grade) in enumerate(entries, start=1):
+                text += f"{i}. {hours} ساعات - الدرجة: {grade}\n"
+            text += "\nهل تريد حساب المعدل الآن؟"
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("حساب", callback_data="gpa_calculate"),
+                    InlineKeyboardButton("إعادة إدخال", callback_data="gpa_reset"),
+                    InlineKeyboardButton("إلغاء", callback_data="gpa_cancel")
+                ]
+            ])
+            await update.message.reply_text(text, reply_markup=keyboard)
+            return
+        elif msg.lower() == "إلغاء":
+            context.user_data.pop("gpa_entries", None)
+            await update.message.reply_text("تم إلغاء حساب المعدل.", reply_markup=reply_markup)
+            return
+        else:
+            # محاولة تحليل الإدخال بصيغة "عدد الساعات/الدرجة"
+            try:
+                parts = msg.split()
+                for part in parts:
+                    hours_str, grade = part.split("/")
+                    hours = int(hours_str.strip())
+                    grade = grade.strip().upper()
+                    if grade not in GRADE_POINTS:
+                        await update.message.reply_text(f"❌ الدرجة '{grade}' غير صحيحة. جرب مرة ثانية.")
+                        return
+                    context.user_data["gpa_entries"].append((hours, grade))
+                await update.message.reply_text(
+                    "✅ تم إضافة المواد. أرسل المزيد أو أرسل *حساب* للحساب، أو *إلغاء* للخروج.",
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                await update.message.reply_text(
+                    "❌ صيغة الإدخال غير صحيحة. استعمل الصيغة: `عدد الساعات/الدرجة` مثل `3/A+`.",
+                    parse_mode="Markdown"
+                )
+            return
+
+    # --- هنا تضع باقي أوامرك الأصلية ---
     if msg == "موعد المكافأة":
         today = datetime.today()
         bonus = datetime(today.year + (today.month == 12 and today.day > 26), (today.month % 12) + 1 if today.day > 26 else today.month, 26)
@@ -103,116 +177,4 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("https://maps.app.goo.gl/BPwmcoQ7T16CT2FX8")
 
     elif msg == "حفل التخرج":
-        await update.message.reply_photo("https://www2.0zz0.com/2025/05/15/07/864959598.jpeg")
-
-    elif msg == "دليل التخصصات":
-        for img in [
-            "https://www2.0zz0.com/2025/05/15/09/898187191.jpeg",
-            "https://www2.0zz0.com/2025/05/15/09/940232684.jpeg",
-            "https://www2.0zz0.com/2025/05/15/09/275392642.jpeg",
-            "https://www2.0zz0.com/2025/05/15/09/316519082.jpeg",
-            "https://www2.0zz0.com/2025/05/15/09/409568913.jpeg"
-        ]:
-            await update.message.reply_photo(img)
-
-    elif msg == "قروب بيع الكتب":
-        await update.message.reply_text("https://t.me/bookTaifUniversity")
-
-    elif msg == "قروب الفصل الصيفي":
-        await update.message.reply_text("https://t.me/summerTaifUniversity")
-
-    elif msg == "قروبات فروع الجامعة":
-        await update.message.reply_text("اختر الفرع:", reply_markup=ReplyKeyboardMarkup([
-            ["فرع تربة", "فرع الخرمة", "فرع رنية"], ["رجوع"]
-        ], resize_keyboard=True))
-
-    elif msg == "فرع تربة":
-        await update.message.reply_text("https://t.me/+LTvqFqmbNhU3Nzg0")
-    elif msg == "فرع الخرمة":
-        await update.message.reply_text("https://t.me/+TI4sw9271iJhNDU0")
-    elif msg == "فرع رنية":
-        await update.message.reply_text("https://t.me/+LhI_BEwURHNlNGZk")
-
-    elif msg == "قروبات الكليات":
-        await update.message.reply_text("اختر الكلية:", reply_markup=ReplyKeyboardMarkup([
-            ["كلية التربية", "الكلية التطبيقية"],
-            ["دبلوم المناولة الأرضية", "كلية العلوم"],
-            ["كلية الهندسة", "كلية الحاسبات"],
-            ["كلية التصاميم", "كلية الشريعة"],
-            ["كلية إدارة الأعمال", "كلية التقنية"],
-            ["كلية الطب", "كلية طب الأسنان"],
-            ["التمريض", "كلية الصيدلة"],
-            ["العلاج الطبيعي", "علوم الأشعة"],
-            ["المختبرات الإكلينيكية"], ["رجوع"]
-        ], resize_keyboard=True))
-
-    college_links = {
-        "كلية التربية": "https://t.me/educationTaifUniversity",
-        "الكلية التطبيقية": "https://t.me/appliedstudiesTaifUniversity",
-        "دبلوم المناولة الأرضية": "https://t.me/aviationTaifUniversity",
-        "كلية العلوم": "https://t.me/TaifUnivierstiy1",
-        "كلية الهندسة": "https://t.me/engineeringTaifUniversity",
-        "كلية الحاسبات": "https://t.me/computersTaifUniversity",
-        "كلية التصاميم": "https://t.me/designsTaifUniversity",
-        "كلية الشريعة": "https://t.me/+TKCYp3jPayCyUgSw",
-        "كلية إدارة الأعمال": "https://t.me/+na12acQgxzxkZTZk",
-        "كلية التقنية": "https://t.me/tvtcVocationalTaifCorporation",
-        "كلية الطب": "https://t.me/medicine_Tu",
-        "كلية طب الأسنان": "https://t.me/Dentistry_TU",
-        "كلية الصيدلة": "https://t.me/Pharma_DTU33",
-        "التمريض": "https://t.me/nursstudent",
-        "العلاج الطبيعي": "https://t.me/Physical_therapyTU",
-        "علوم الأشعة": "https://t.me/RadiologySciences",
-        "المختبرات الإكلينيكية": "https://t.me/labrotary_Tu"
-    }
-    if msg in college_links:
-        await update.message.reply_text(college_links[msg])
-
-    elif msg == "الأسئلة الشائعة":
-        await update.message.reply_text("اختر سؤال:", reply_markup=ReplyKeyboardMarkup([
-            ["كيف أسجل المواد؟"], ["رجوع"]
-        ], resize_keyboard=True))
-
-    elif msg == "كيف أسجل المواد؟":
-        await update.message.reply_text(
-            "المنظومة > التسجيل الإلكتروني\n\n"
-            "- إذا لم تحذف مادة: تسجيل المجموعات الإلكترونية.\n"
-            "- إذا حذفت أو حملت مادة: الحذف والإضافة يدويًا."
-        )
-
-    elif msg == "التقويم الأكاديمي":
-        await update.message.reply_text("التقويم الأكاديمي:", reply_markup=calendar_keyboard())
-
-    elif msg == "رجوع":
-        await update.message.reply_text("رجعت للقائمة:", reply_markup=reply_markup)
-
-async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-
-    if data == "legend":
-        await query.edit_message_text("✅ = جاري\n❌ = منتهي\n⏳ = لم يبدأ بعد", reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("رجوع", callback_data="calendar_back")]
-        ]))
-    elif data == "calendar_back":
-        await query.edit_message_text("التقويم الأكاديمي:", reply_markup=calendar_keyboard())
-    elif data.startswith("event_"):
-        index = int(data.split("_")[1])
-        title, start, end = academic_events[index]
-        today = datetime.today().date()
-        start_date = datetime.strptime(start, "%Y-%m-%d").date()
-        end_date = datetime.strptime(end, "%Y-%m-%d").date()
-        if today < start_date:
-            msg = f"{title} يبدأ بعد {(start_date - today).days} يوم."
-        elif start_date <= today <= end_date:
-            msg = f"{title} جاري، ينتهي بعد {(end_date - today).days} يوم."
-        else:
-            msg = f"{title} انتهى."
-        await query.edit_message_text(msg, reply_markup=calendar_keyboard())
-
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(handle_callback))
-app.run_polling()
+        await update.message.reply_photo("https://www
