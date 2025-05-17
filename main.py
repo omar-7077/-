@@ -1,21 +1,27 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from datetime import datetime
 
 TOKEN = "7597887705:AAEQr0g_aWxoZb6o1QC5geKZ3GzCBQtl7fY"
 
-main_menu = [
-    ["موعد المكافأة", "أرقام التواصل"],
-    ["الأسئلة الشائعة", "تقييم الدكاترة"],
-    ["منظومة الجامعة", "البلاك بورد"],
-    ["موقع جامعة الطلاب", "موقع جامعة الطالبات"],
-    ["حفل التخرج", "دليل التخصصات"],
-    ["قروب بيع الكتب", "قروب الفصل الصيفي"],
-    ["قروبات الكليات", "قروبات فروع الجامعة"],
-    ["التقويم الأكاديمي", "حساب المعدل الفصلي"]  # أضفت هنا زر حساب المعدل
+# قائمة الأزرار مع callback_data مخصصة
+main_menu_buttons = [
+    [("موعد المكافأة", "bonus"), ("أرقام التواصل", "contact")],
+    [("الأسئلة الشائعة", "faq"), ("تقييم الدكاترة", "doctors_rating")],
+    [("منظومة الجامعة", "university_system"), ("البلاك بورد", "blackboard")],
+    [("موقع جامعة الطلاب", "male_students_map"), ("موقع جامعة الطالبات", "female_students_map")],
+    [("حفل التخرج", "graduation"), ("دليل التخصصات", "majors_guide")],
+    [("قروب بيع الكتب", "books_group"), ("قروب الفصل الصيفي", "summer_sem_group")],
+    [("قروبات الكليات", "colleges_groups"), ("قروبات فروع الجامعة", "branches_groups")],
+    [("التقويم الأكاديمي", "academic_calendar"), ("حساب المعدل الفصلي", "gpa_calc")]
 ]
 
-reply_markup = ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
+def get_main_menu_markup():
+    keyboard = []
+    for row in main_menu_buttons:
+        keyboard.append([InlineKeyboardButton(text, callback_data=data) for text, data in row])
+    return InlineKeyboardMarkup(keyboard)
+
 shown_welcome = set()
 
 academic_events = [
@@ -61,14 +67,6 @@ def calendar_keyboard():
     keyboard.append([InlineKeyboardButton("شرح الرموز", callback_data="legend")])
     return InlineKeyboardMarkup(keyboard)
 
-async def welcome_if_needed(update: Update):
-    uid = update.effective_user.id
-    if uid not in shown_welcome:
-        shown_welcome.add(uid)
-        await update.message.reply_text("ضعت؟ ما لقيت احد يرد عليك؟ ولا يهمك\nانا هنا عشانك", reply_markup=reply_markup)
-        return True
-    return False
-
 # قاموس درجات مع النقاط لحساب المعدل من 4
 GRADE_POINTS = {
     "A+": 4.0,
@@ -83,18 +81,68 @@ GRADE_POINTS = {
 }
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await welcome_if_needed(update)
+    uid = update.effective_user.id
+    shown_welcome.add(uid)
+    await update.message.reply_text("أهلًا! هذه هي القائمة الرئيسية، اختر أحد الخيارات:", reply_markup=get_main_menu_markup())
 
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await welcome_if_needed(update):
-        return
+async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
 
-    msg = update.message.text.strip()
+    # هنا ممكن تضيف وظائف لكل callback_data
+    if data == "bonus":
+        today = datetime.today()
+        bonus = datetime(today.year + (today.month == 12 and today.day > 26), (today.month % 12) + 1 if today.day > 26 else today.month, 26)
+        left = (bonus - today).days
+        await query.edit_message_text(f"موعد المكافأة: {bonus.date()}\nالمتبقي: {left} يوم", reply_markup=get_main_menu_markup())
 
-    # هنا بدأنا إضافة دعم حساب المعدل
-    if msg == "حساب المعدل الفصلي":
+    elif data == "contact":
+        await query.edit_message_text("الهاتف: 920002122\nالإيميل: info@tu.edu.sa", reply_markup=get_main_menu_markup())
+
+    elif data == "doctors_rating":
+        await query.edit_message_text("https://t.me/tudoctors", reply_markup=get_main_menu_markup())
+
+    elif data == "university_system":
+        await query.edit_message_text("https://edugate.tu.edu.sa", reply_markup=get_main_menu_markup())
+
+    elif data == "blackboard":
+        await query.edit_message_text("https://lms.tu.edu.sa", reply_markup=get_main_menu_markup())
+
+    elif data == "male_students_map":
+        await query.edit_message_text("https://maps.app.goo.gl/SJ2vYZt9wiqQYkx89", reply_markup=get_main_menu_markup())
+
+    elif data == "female_students_map":
+        await query.edit_message_text("https://maps.app.goo.gl/BPwmcoQ7T16CT2FX8", reply_markup=get_main_menu_markup())
+
+    elif data == "graduation":
+        await query.edit_message_media(
+            media="https://www2.0zz0.com/2025/05/15/07/864959598.jpeg"
+        )
+        # أو ترسل الصورة كرسالة منفصلة بدل edit_message_media لو حاب:
+        # await query.edit_message_text("حفل التخرج")
+        # await query.message.reply_photo("https://www2.0zz0.com/2025/05/15/07/864959598.jpeg")
+
+    elif data == "academic_calendar":
+        await query.edit_message_text("التقويم الأكاديمي:", reply_markup=calendar_keyboard())
+
+    elif data == "legend":
+        await query.edit_message_text(
+            "شرح الرموز:\n"
+            "⏳ = لم يبدأ بعد\n"
+            "✅ = جاري\n"
+            "❌ = انتهى"
+            , reply_markup=calendar_keyboard()
+        )
+
+    elif data.startswith("event_"):
+        idx = int(data.split("_")[1])
+        title, start, end = academic_events[idx]
+        await query.edit_message_text(f"{title}\nمن: {start}\nإلى: {end}", reply_markup=calendar_keyboard())
+
+    elif data == "gpa_calc":
         context.user_data["gpa_entries"] = []
-        await update.message.reply_text(
+        await query.edit_message_text(
             "حياك! 🚀 جاهز لحساب معدلك الفصلي؟\n"
             "أرسل المواد بصيغة:\n"
             "عدد الساعات/الدرجة مثل:\n"
@@ -102,7 +150,16 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "بعد ما تخلص، أرسل *حساب* لحساب المعدل، أو *إلغاء* للخروج.",
             parse_mode="Markdown"
         )
+
+    # أضف هنا باقي ال callback_data اللي تحتاجها حسب تطبيقك
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if uid not in shown_welcome:
+        await update.message.reply_text("رجاءً ارسل /start أولًا لتشغيل البوت واظهار القائمة.")
         return
+
+    msg = update.message.text.strip()
 
     if "gpa_entries" in context.user_data:
         if msg.lower() == "حساب":
@@ -110,7 +167,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not entries:
                 await update.message.reply_text("❌ ما أدخلت أي مواد، أرسل المواد أولاً.")
                 return
-            # عرض المواد للتأكيد
             text = "هذه المواد التي أدخلتها:\n"
             for i, (hours, grade) in enumerate(entries, start=1):
                 text += f"{i}. {hours} ساعات - الدرجة: {grade}\n"
@@ -126,10 +182,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         elif msg.lower() == "إلغاء":
             context.user_data.pop("gpa_entries", None)
-            await update.message.reply_text("تم إلغاء حساب المعدل.", reply_markup=reply_markup)
+            await update.message.reply_text("تم إلغاء حساب المعدل.", reply_markup=get_main_menu_markup())
             return
         else:
-            # محاولة تحليل الإدخال بصيغة "عدد الساعات/الدرجة"
             try:
                 parts = msg.split()
                 for part in parts:
@@ -151,30 +206,52 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             return
 
-    # --- هنا تضع باقي أوامرك الأصلية ---
-    if msg == "موعد المكافأة":
-        today = datetime.today()
-        bonus = datetime(today.year + (today.month == 12 and today.day > 26), (today.month % 12) + 1 if today.day > 26 else today.month, 26)
-        left = (bonus - today).days
-        await update.message.reply_text(f"موعد المكافأة: {bonus.date()}\nالمتبقي: {left} يوم")
+    # نصوص باقي الأوامر، يمكن تجاهلها لأن القائمة الآن أزرار Inline
+    await update.message.reply_text("اضغط على أحد الأزرار من القائمة.")
 
-    elif msg == "أرقام التواصل":
-        await update.message.reply_text("الهاتف: 920002122\nالإيميل: info@tu.edu.sa")
+async def handle_gpa_calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
 
-    elif msg == "تقييم الدكاترة":
-        await update.message.reply_text("https://t.me/tudoctors")
+    entries = context.user_data.get("gpa_entries", [])
+    if not entries:
+        await query.edit_message_text("❌ ما أدخلت أي مواد، أرسل المواد أولاً.")
+        return
 
-    elif msg == "منظومة الجامعة":
-        await update.message.reply_text("https://edugate.tu.edu.sa")
+    total_hours = sum(hours for hours, _ in entries)
+    if total_hours == 0:
+        await query.edit_message_text("❌ مجموع الساعات لا يمكن أن يكون صفر.")
+        return
 
-    elif msg == "البلاك بورد":
-        await update.message.reply_text("https://lms.tu.edu.sa")
+    total_points = sum(hours * GRADE_POINTS.get(grade, 0) for hours, grade in entries)
+    gpa = total_points / total_hours
+    await query.edit_message_text(f"معدلك الفصلي هو: {gpa:.2f}", reply_markup=get_main_menu_markup())
+    context.user_data.pop("gpa_entries", None)
 
-    elif msg == "موقع جامعة الطلاب":
-        await update.message.reply_text("https://maps.app.goo.gl/SJ2vYZt9wiqQYkx89")
+async def handle_gpa_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    context.user_data["gpa_entries"] = []
+    await query.edit_message_text("تم إعادة تعيين المواد. أرسل المواد مرة أخرى بصيغة:\nعدد الساعات/الدرجة مثل:\n`3/A+ 4/B 2/C+`", parse_mode="Markdown")
 
-    elif msg == "موقع جامعة الطالبات":
-        await update.message.reply_text("https://maps.app.goo.gl/BPwmcoQ7T16CT2FX8")
+async def handle_gpa_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    context.user_data.pop("gpa_entries", None)
+    await query.edit_message_text("تم إلغاء حساب المعدل.", reply_markup=get_main_menu_markup())
 
-    elif msg == "حفل التخرج":
-        await update.message.reply_photo("https://www2.0zz0.com/2025/05/15/07/864959598.jpeg")
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(handle_callback_query))
+    app.add_handler(CallbackQueryHandler(handle_gpa_calculate, pattern="^gpa_calculate$"))
+    app.add_handler(CallbackQueryHandler(handle_gpa_reset, pattern="^gpa_reset$"))
+    app.add_handler(CallbackQueryHandler(handle_gpa_cancel, pattern="^gpa_cancel$"))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+    print("Bot started...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
